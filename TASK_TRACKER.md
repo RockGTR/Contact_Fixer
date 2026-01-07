@@ -1,19 +1,29 @@
-# Task: Contact Fixer App Development
+# Task Tracker
 
-- [ ] Project Setup <!-- id: 0 -->
-    - [x] Initialize Git repository & Training <!-- id: 1 -->
-    - [x] Setup Virtual Environment <!-- id: 16 -->
-    - [ ] Create initial documentation (README, Architecture options) <!-- id: 2 -->
-- [ ] Research & Planning <!-- id: 3 -->
-    - [ ] Propose detailed implementation options for backend/logic layer <!-- id: 4 -->
-    - [ ] Select technology stack for logic testing (Python/Node/Kotiln) <!-- id: 5 -->
-- [ ] "Backend" / Logic Implementation <!-- id: 6 -->
-    - [ ] Setup Google People API (credentials, auth) <!-- id: 7 -->
-    - [ ] Implement Contact Fetching <!-- id: 8 -->
-    - [ ] Implement Local Database Storage <!-- id: 9 -->
-    - [ ] Implement Number Fixing Logic <!-- id: 10 -->
-    - [ ] Verification with Dummy Data <!-- id: 11 -->
-- [ ] Android App Development <!-- id: 12 -->
-    - [ ] Initialize Android Project <!-- id: 13 -->
-    - [ ] Implement UI <!-- id: 14 -->
-    - [ ] Integrate Logic <!-- id: 15 -->
+## Completed Features
+
+### Phone Fixer UI
+- [x] Tinder-style swipe cards (right=accept, left=reject, up=edit)
+- [x] List view alternative (toggle via app bar)
+- [x] Alphabet-based avatar colors (A-Z)
+- [x] Centered card layout
+- [x] Name editing support
+- [x] Local staging (SQLite)
+- [x] Pending changes review (Phone + Name)
+- [x] Push to Google batch update
+
+### Backend API
+- [x] Contact sync from Google
+- [x] Phone parsing with libphonenumber
+- [x] Region parameter support
+- [x] Staging endpoints (stage_fix, pending_changes, push_to_google)
+- [x] Name update support in backend
+
+### Other
+- [x] Google Sign-In
+- [x] Device locale region detection
+- [x] Region suggestions
+
+## Pending
+- [ ] iOS testing
+- [ ] Production deployment
