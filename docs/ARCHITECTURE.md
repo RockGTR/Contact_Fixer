@@ -53,7 +53,7 @@ Contact Fixer is a secure, multi-platform application that helps users standardi
 
 Contact Fixer v1.2 implements a secure, multi-platform architecture with enterprise-grade authentication and data protection.
 
-![Data Flow Diagram v1.2](file:///Users/rockgtr/.gemini/antigravity/brain/2fd8178c-1551-4895-be7a-8ae290f9df63/data_flow_v1_2_1767810773237.png)
+![Data Flow Diagram v1.2](data_flow_v1_2.png)
 
 ### Authentication Flow
 
