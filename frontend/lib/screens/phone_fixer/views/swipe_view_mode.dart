@@ -66,42 +66,75 @@ class SwipeViewMode extends StatelessWidget {
         ),
 
         // Swipe instructions
-        Text(
-          '← Skip  •  ↑ Edit  •  Accept →',
-          style: TextStyle(color: Colors.grey.shade500, fontSize: 13),
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 8.0),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              _InstructionItem(
+                text: 'Skip',
+                icon: Icons.swipe_left,
+                color: const Color(0xFFef4444),
+              ),
+              Container(
+                width: 1,
+                height: 12,
+                color: Colors.grey.shade300,
+                margin: const EdgeInsets.symmetric(horizontal: 12),
+              ),
+              _InstructionItem(
+                text: 'Edit',
+                icon: Icons.swipe_up,
+                color: const Color(0xFF667eea),
+              ),
+              Container(
+                width: 1,
+                height: 12,
+                color: Colors.grey.shade300,
+                margin: const EdgeInsets.symmetric(horizontal: 12),
+              ),
+              _InstructionItem(
+                text: 'Accept',
+                icon: Icons.swipe_right,
+                color: const Color(0xFF10b981),
+              ),
+            ],
+          ),
         ),
 
         // Card swiper
         Expanded(
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: CardSwiper(
-              controller: controller,
-              cardsCount: contacts.length,
-              numberOfCardsDisplayed: contacts.length > 1 ? 2 : 1,
-              backCardOffset: const Offset(0, 40),
-              padding: EdgeInsets.zero,
-              allowedSwipeDirection: const AllowedSwipeDirection.only(
-                left: true,
-                right: true,
-                up: true,
+          child: Center(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: CardSwiper(
+                controller: controller,
+                cardsCount: contacts.length,
+                numberOfCardsDisplayed: contacts.length > 1 ? 2 : 1,
+                backCardOffset: const Offset(0, 40),
+                padding: EdgeInsets.zero,
+                allowedSwipeDirection: const AllowedSwipeDirection.only(
+                  left: true,
+                  right: true,
+                  up: true,
+                ),
+                onSwipe: (prev, curr, direction) {
+                  final contact = contacts[prev];
+                  if (direction == CardSwiperDirection.top) {
+                    onEditPressed(contact);
+                    return false; // Don't auto-advance, dialog will handle it
+                  }
+                  onSwipe(contact, direction);
+                  return true;
+                },
+                onEnd: onEndReached,
+                cardBuilder: (context, index, percentX, percentY) {
+                  return ContactCard(
+                    contact: contacts[index],
+                    percentX: percentX.toDouble(),
+                  );
+                },
               ),
-              onSwipe: (prev, curr, direction) {
-                final contact = contacts[prev];
-                if (direction == CardSwiperDirection.top) {
-                  onEditPressed(contact);
-                  return false; // Don't auto-advance, dialog will handle it
-                }
-                onSwipe(contact, direction);
-                return true;
-              },
-              onEnd: onEndReached,
-              cardBuilder: (context, index, percentX, percentY) {
-                return ContactCard(
-                  contact: contacts[index],
-                  percentX: percentX.toDouble(),
-                );
-              },
             ),
           ),
         ),
@@ -173,6 +206,37 @@ class _ActionButton extends StatelessWidget {
         ),
         child: Icon(icon, color: color, size: size * 0.5),
       ),
+    );
+  }
+}
+
+class _InstructionItem extends StatelessWidget {
+  final String text;
+  final IconData icon;
+  final Color color;
+
+  const _InstructionItem({
+    required this.text,
+    required this.icon,
+    required this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, size: 14, color: color.withOpacity(0.8)),
+        const SizedBox(width: 4),
+        Text(
+          text,
+          style: TextStyle(
+            color: color.withOpacity(0.8),
+            fontWeight: FontWeight.w600,
+            fontSize: 12,
+          ),
+        ),
+      ],
     );
   }
 }

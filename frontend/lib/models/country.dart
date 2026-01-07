@@ -1,5 +1,3 @@
-import 'package:flutter/material.dart';
-
 /// Data class for country information
 class Country {
   final String code; // ISO 3166-1 alpha-2 code (e.g., "US")
