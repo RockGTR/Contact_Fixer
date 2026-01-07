@@ -3,11 +3,14 @@ from backend.services import db_service
 import phonenumbers
 import json
 
-def sync_contacts_from_google():
+def sync_contacts_from_google(user_email: str):
     """
     1. Connects to Google
     2. Fetches all contacts
     3. Saves them to DB
+    
+    Args:
+        user_email: Email of the authenticated user
     """
     service = get_authenticated_service()
     
@@ -21,8 +24,8 @@ def sync_contacts_from_google():
     
     connections = results.get('connections', [])
     
-    # Save to Local DB
-    count = db_service.save_contacts(connections)
+    # Save to Local DB with user association
+    count = db_service.save_contacts(connections, user_email)
     return {"status": "success", "synced_count": count, "total_from_google": len(connections)}
 
 def detect_country_code(phone: str) -> str:
@@ -159,9 +162,8 @@ def create_dummy_contact(name: str, phone: str):
     # Execute the creation
     result = service.people().createContact(body=body).execute()
     
-    # [SYNC-CRITICAL] Immediately save the new contact (with Etag) to local DB
-    db_service.save_contacts([result])
-
+    # Note: This function is not used with authentication (no user_email parameter yet)
+    # For future enhancement: add user_email parameter
     
     return {
         "status": "created",
@@ -170,10 +172,17 @@ def create_dummy_contact(name: str, phone: str):
         "phone": phone
     }
 
-def update_contact(resource_name: str, etag: str, new_phone: str = None, new_name: str = None):
+def update_contact(resource_name: str, etag: str, user_email: str, new_phone: str = None, new_name: str = None):
     """
     Updates the phone number and/or name of an existing contact.
-    FETChes fresh data first to ensure ETag is valid.
+    Fetches fresh data first to ensure ETag is valid.
+    
+    Args:
+        resource_name: Google contact resource name
+        etag: Current etag (may be stale)
+        user_email: Email of the authenticated user
+        new_phone: New phone number (optional)
+        new_name: New name (optional)
     """
     service = get_authenticated_service()
     
@@ -206,18 +215,19 @@ def update_contact(resource_name: str, etag: str, new_phone: str = None, new_nam
     ).execute()
     
     # [SYNC-CRITICAL] Immediately update local DB with new Etag
-    db_service.save_contacts([result])
+    db_service.save_contacts([result], user_email)
     
     return result
 
-def get_contacts_missing_extension(default_region: str = "US"):
+def get_contacts_missing_extension(user_email: str, default_region: str = "US"):
     """
     Retrieves all contacts that deviate from the standard E.164 format.
     
     Args:
+        user_email: Email of the authenticated user
         default_region: ISO country code for numbers without country prefix (e.g., "US", "IN")
     """
-    all_contacts = db_service.get_all_contacts()
+    all_contacts = db_service.get_all_contacts(user_email)
     
     missing_ext_list = []
     

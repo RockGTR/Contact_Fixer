@@ -1,6 +1,28 @@
-fastapi
-uvicorn
-google-api-python-client
-google-auth-httplib2
-google-auth-oauthlib
-phonenumbers
+# Core Framework
+fastapi==0.109.0
+uvicorn==0.27.0
+pydantic==2.5.3
+
+# Google API
+google-api-python-client==2.116.0
+google-auth-httplib2==0.2.0
+google-auth-oauthlib==1.2.0
+
+# Phone Number Parsing
+phonenumbers==8.13.27
+
+# Security - Authentication & JWT
+python-jose[cryptography]==3.3.0
+google-auth==2.27.0
+
+# Security - Encryption
+cryptography==42.0.0
+
+# Security - Rate Limiting
+slowapi==0.1.9
+
+# Environment Variables
+python-dotenv==1.0.0
+
+# HTTP Client (for token verification)
+requests==2.31.0

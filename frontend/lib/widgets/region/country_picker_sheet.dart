@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../models/country.dart';
 import '../../services/api_service.dart';
+import '../../mixins/auth_token_mixin.dart';
 
 class CountryPickerSheet extends StatefulWidget {
   final Country selectedCountry;
@@ -16,20 +17,24 @@ class CountryPickerSheet extends StatefulWidget {
   State<CountryPickerSheet> createState() => _CountryPickerSheetState();
 }
 
-class _CountryPickerSheetState extends State<CountryPickerSheet> {
+class _CountryPickerSheetState extends State<CountryPickerSheet>
+    with AuthTokenMixin {
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
   List<Map<String, dynamic>> _suggestedRegions = [];
+  late final ApiService _api;
 
   @override
   void initState() {
     super.initState();
+    _api = createApiService(context);
     _loadSuggestedRegions();
   }
 
   Future<void> _loadSuggestedRegions() async {
     try {
-      final result = await ApiService().analyzeRegions();
+      final idToken = await getIdToken(context);
+      final result = await _api.analyzeRegions(idToken);
       setState(() {
         _suggestedRegions = List<Map<String, dynamic>>.from(
           result['regions'] ?? [],

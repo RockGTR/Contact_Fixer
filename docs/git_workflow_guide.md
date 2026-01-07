@@ -6,11 +6,15 @@ This document explains how a professional software development team sets up and 
 
 In a professional setting, there is usually a "Remote" repository (hosted on GitHub, GitLab, Bitbucket, etc.) that acts as the **Single Source of Truth**.
 
-### Initial Setup (What we are doing now)
-Since we are starting fresh:
-1.  **Initialize Git**: Turn the current folder into a tracked repository.
-2.  **Create `.gitignore`**: Tell Git what *not* to track (secrets, temp files, built binaries).
-3.  **Initial Commit**: Save the starting state.
+### Initial Setup (Completed)
+The project repository is initialized, and `.gitignore` is configured.
+
+### Ongoing Development
+Since the project is active:
+1.  **Pull Latest**: Always start by pulling the latest changes from `main`.
+2.  **Create Feature Branch**: Creates separate branches for new features (e.g., `feature/web-support`).
+3.  **Commit Often**: Save work with clear messages.
+4.  **Merge**: Merge back to `main` when the feature is complete and tested.
 
 ## 2. The Development Flow
 

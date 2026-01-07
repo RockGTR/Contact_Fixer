@@ -47,6 +47,34 @@ Two view modes (toggle via app bar icon):
 - **Uniform Experience**: Advanced editing features (Region Selector, Split Input, Name Field) are available in both the main fix screen and the Pending Changes review screen.
 - **Control Toolbar**: Access "Fix All", "Sort", and "View Toggle" from the dedicated toolbar below the header.
 
+### Platform-Aware API Configuration
+- **Automatic Platform Detection**: The `api_service.dart` automatically detects the platform and uses the correct base URL:
+  - **Web (Chrome)**: `http://localhost:8000`
+  - **Android Emulator**: `http://10.0.2.2:8000`
+- **CORS Support**: The backend is configured to accept cross-origin requests from the web app running on `localhost:3000`.
+
+### Web-Specific Configuration
+
+**Authentication Method**: Legacy popup (FedCM disabled)
+- FedCM is currently **disabled** (commented out in `index.html`)
+- Reason: Compatibility issues with OAuth apps in Testing mode
+- Uses traditional Google Sign-In popup window instead
+- Location: `frontend/web/index.html`:
+  ```html
+  <!-- FedCM disabled temporarily -->
+  <!-- <meta name="google-identity-fedcm-enabled" content="true"> -->
+  ```
+
+**When to Re-enable FedCM**:
+- After publishing your OAuth app (not in Testing mode)
+- Provides improved privacy and native browser authentication dialogs
+- Required for Chrome 108+ in production
+
+**Platform-Aware Settings**:
+- Locale detection uses `kIsWeb` to handle web vs mobile differences
+- Settings provider automatically adapts to platform capabilities
+- Region suggestions work on both web and mobile platforms
+
 ## Project Structure
 ```
 frontend/lib/
@@ -68,3 +96,10 @@ frontend/lib/
 ```bash
 cd frontend && flutter pub get && flutter run
 ```
+
+**For Web Development**:
+```bash
+flutter run -d chrome --web-port=3000
+```
+
+> **Note**: The web app requires the backend to be running with CORS enabled. The backend automatically allows requests from `http://localhost:3000`.

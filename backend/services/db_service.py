@@ -2,6 +2,10 @@ import sqlite3
 import json
 import os
 from datetime import datetime
+from backend.core.security import FieldEncryption
+import logging
+
+logger = logging.getLogger(__name__)
 
 DB_FILE = 'backend/contacts.db'
 
@@ -11,54 +15,74 @@ def get_db_connection():
     return conn
 
 def init_db():
+    """Initialize database with encryption-ready schema."""
     conn = get_db_connection()
-    # Contacts table
+    
+    # Contacts table with user isolation
     conn.execute('''
         CREATE TABLE IF NOT EXISTS contacts (
-            resource_name TEXT PRIMARY KEY,
+            resource_name TEXT,
+            user_email TEXT,
             etag TEXT,
             given_name TEXT,
             phone_number TEXT,
-            raw_json TEXT
+            raw_json TEXT,
+            PRIMARY KEY (resource_name, user_email)
         )
     ''')
     
-    # Staged changes table - tracks fixes before pushing to Google
+    # Staged changes table with user isolation
     conn.execute('''
         CREATE TABLE IF NOT EXISTS staged_changes (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            resource_name TEXT UNIQUE,
+            resource_name TEXT,
+            user_email TEXT,
             contact_name TEXT,
             new_name TEXT,
             original_phone TEXT,
             new_phone TEXT,
             action TEXT,
-            created_at TEXT
+            created_at TEXT,
+            updated_at TEXT,
+            UNIQUE(resource_name, user_email)
         )
     ''')
     
-    # 3. Migration: Add new_name column if it doesn't exist
+    # Migration: Add user_email column to existing tables if needed
     try:
-        conn.execute('ALTER TABLE staged_changes ADD COLUMN new_name TEXT')
+        conn.execute('ALTER TABLE contacts ADD COLUMN user_email TEXT')
+        logger.info("Added user_email column to contacts table")
     except sqlite3.OperationalError:
         pass
-
-    # 4. Migration: Add updated_at if it doesn't exist
+    
     try:
-        conn.execute('ALTER TABLE staged_changes ADD COLUMN updated_at TEXT')
+        conn.execute('ALTER TABLE staged_changes ADD COLUMN user_email TEXT')
+        logger.info("Added user_email column to staged_changes table")
+    except sqlite3.OperationalError:
+        pass
+    
+    # Create indexes for performance
+    try:
+        conn.execute('CREATE INDEX IF NOT EXISTS idx_contacts_user ON contacts(user_email)')
+        conn.execute('CREATE INDEX IF NOT EXISTS idx_staged_user ON staged_changes(user_email)')
     except sqlite3.OperationalError:
         pass
         
     conn.commit()
     conn.close()
+    logger.info("Database initialized successfully")
 
-def save_contacts(contacts_list):
+def save_contacts(contacts_list, user_email: str):
     """
-    Saves a list of contact dictionaries to the DB.
+    Saves a list of contact dictionaries to the DB with encryption.
     contacts_list items must have: resourceName, etag, names, phoneNumbers
+    
+    Args:
+        contacts_list: List of contact dictionaries from Google API
+        user_email: Email of the authenticated user
     """
     conn = get_db_connection()
-    cursor = conn.cursor()
+    cursor =  conn.cursor()
     
     count = 0
     for person in contacts_list:
@@ -78,22 +102,43 @@ def save_contacts(contacts_list):
             phone_number = phones[0].get('value')
             
         raw_json = json.dumps(person)
+        
+        # Encrypt sensitive fields
+        encrypted_phone = FieldEncryption.encrypt(phone_number) if phone_number else None
+        encrypted_raw = FieldEncryption.encrypt(raw_json)
 
         cursor.execute('''
-            INSERT OR REPLACE INTO contacts (resource_name, etag, given_name, phone_number, raw_json)
-            VALUES (?, ?, ?, ?, ?)
-        ''', (resource_name, etag, given_name, phone_number, raw_json))
+            INSERT OR REPLACE INTO contacts 
+            (resource_name, user_email, etag, given_name, phone_number, raw_json)
+            VALUES (?, ?, ?, ?, ?, ?)
+        ''', (resource_name, user_email, etag, given_name, encrypted_phone, encrypted_raw))
         count += 1
         
     conn.commit()
     conn.close()
+    logger.info(f"Saved {count} contacts for user {user_email}")
     return count
 
-def get_all_contacts():
+def get_all_contacts(user_email: str):
+    """Get all contacts for a specific user with decryption."""
     conn = get_db_connection()
-    contacts = conn.execute('SELECT * FROM contacts').fetchall()
+    contacts = conn.execute(
+        'SELECT * FROM contacts WHERE user_email = ?', 
+        (user_email,)
+    ).fetchall()
     conn.close()
-    return [dict(row) for row in contacts]
+    
+    # Decrypt sensitive fields
+    decrypted_contacts = []
+    for row in contacts:
+        contact = dict(row)
+        if contact.get('phone_number'):
+            contact['phone_number'] = FieldEncryption.decrypt(contact['phone_number'])
+        if contact.get('raw_json'):
+            contact['raw_json'] = FieldEncryption.decrypt(contact['raw_json'])
+        decrypted_contacts.append(contact)
+    
+    return decrypted_contacts
 
 def find_contact_by_name(name: str):
     """Finds a contact by exact given name."""
@@ -104,18 +149,28 @@ def find_contact_by_name(name: str):
         return dict(row)
     return None
 
-def find_contact_by_resource_name(resource_name: str):
-    """Finds a contact by resource name."""
+def find_contact_by_resource_name(resource_name: str, user_email: str):
+    """Finds a contact by resource name for a specific user."""
     conn = get_db_connection()
-    row = conn.execute('SELECT * FROM contacts WHERE resource_name = ?', (resource_name,)).fetchone()
+    row = conn.execute(
+        'SELECT * FROM contacts WHERE resource_name = ? AND user_email = ?', 
+        (resource_name, user_email)
+    ).fetchone()
     conn.close()
+    
     if row:
-        return dict(row)
+        contact = dict(row)
+        # Decrypt sensitive fields
+        if contact.get('phone_number'):
+            contact['phone_number'] = FieldEncryption.decrypt(contact['phone_number'])
+        if contact.get('raw_json'):
+            contact['raw_json'] = FieldEncryption.decrypt(contact['raw_json'])
+        return contact
     return None
 
 # ============= STAGED CHANGES FUNCTIONS =============
 
-def stage_change(resource_name: str, contact_name: str, original_phone: str, new_phone: str, action: str, new_name: str = None):
+def stage_change(resource_name: str, contact_name: str, original_phone: str, new_phone: str, action: str, user_email: str, new_name: str = None):
     """
     Stage a contact change. Uses UPSERT to track created_at vs updated_at.
     """
@@ -128,38 +183,39 @@ def stage_change(resource_name: str, contact_name: str, original_phone: str, new
     try:
         conn.execute('''
             INSERT INTO staged_changes 
-            (resource_name, contact_name, original_phone, new_phone, action, new_name, created_at, updated_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-            ON CONFLICT(resource_name) DO UPDATE SET
+            (resource_name, user_email, contact_name, original_phone, new_phone, action, new_name, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT(resource_name, user_email) DO UPDATE SET
                 contact_name=excluded.contact_name,
                 original_phone=excluded.original_phone,
                 new_phone=excluded.new_phone,
                 action=excluded.action,
                 new_name=excluded.new_name,
                 updated_at=excluded.updated_at
-        ''', (resource_name, contact_name, original_phone, new_phone, action, new_name, now, now))
+        ''', (resource_name, user_email, contact_name, original_phone, new_phone, action, new_name, now, now))
     except sqlite3.OperationalError:
-        # Fallback for older SQLite (unlikely on Mac, but safe): INSERT OR REPLACE
-        # This resets created_at unfortunately, but functionality works.
+        # Fallback for older SQLite
         conn.execute('''
             INSERT OR REPLACE INTO staged_changes 
-            (resource_name, contact_name, original_phone, new_phone, action, created_at, new_name)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
-        ''', (resource_name, contact_name, original_phone, new_phone, action, now, new_name))
+            (resource_name, user_email, contact_name, original_phone, new_phone, action, created_at, new_name)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        ''', (resource_name, user_email, contact_name, original_phone, new_phone, action, now, new_name))
         
     conn.commit()
     conn.close()
 
-def get_staged_changes():
-    """Get all staged changes."""
+def get_staged_changes(user_email: str):
+    """Get all staged changes for a specific user."""
     conn = get_db_connection()
-    # Return both created_at and updated_at
-    changes = conn.execute('SELECT * FROM staged_changes ORDER BY created_at DESC').fetchall()
+    changes = conn.execute(
+        'SELECT * FROM staged_changes WHERE user_email = ? ORDER BY created_at DESC',
+        (user_email,)
+    ).fetchall()
     conn.close()
     return [dict(row) for row in changes]
 
-def get_staged_changes_summary():
-    """Get summary counts of staged changes."""
+def get_staged_changes_summary(user_email: str):
+    """Get summary counts of staged changes for a specific user."""
     conn = get_db_connection()
     summary = {
         'total': 0,
@@ -167,7 +223,10 @@ def get_staged_changes_summary():
         'rejects': 0,
         'edits': 0
     }
-    rows = conn.execute('SELECT action, COUNT(*) as count FROM staged_changes GROUP BY action').fetchall()
+    rows = conn.execute(
+        'SELECT action, COUNT(*) as count FROM staged_changes WHERE user_email = ? GROUP BY action',
+        (user_email,)
+    ).fetchall()
     for row in rows:
         action = row['action']
         count = row['count']
@@ -181,24 +240,30 @@ def get_staged_changes_summary():
     conn.close()
     return summary
 
-def remove_staged_change(resource_name: str):
-    """Remove a specific staged change."""
+def remove_staged_change(resource_name: str, user_email: str):
+    """Remove a specific staged change for a user."""
     conn = get_db_connection()
-    conn.execute('DELETE FROM staged_changes WHERE resource_name = ?', (resource_name,))
+    conn.execute(
+        'DELETE FROM staged_changes WHERE resource_name = ? AND user_email = ?', 
+        (resource_name, user_email)
+    )
     conn.commit()
     conn.close()
 
-def clear_all_staged_changes():
-    """Clear all staged changes."""
+def clear_all_staged_changes(user_email: str):
+    """Clear all staged changes for a specific user."""
     conn = get_db_connection()
-    conn.execute('DELETE FROM staged_changes')
+    conn.execute('DELETE FROM staged_changes WHERE user_email = ?', (user_email,))
     conn.commit()
     conn.close()
 
-def is_contact_staged(resource_name: str) -> bool:
-    """Check if a contact is already staged."""
+def is_contact_staged(resource_name: str, user_email: str) -> bool:
+    """Check if a contact is already staged for a user."""
     conn = get_db_connection()
-    row = conn.execute('SELECT 1 FROM staged_changes WHERE resource_name = ?', (resource_name,)).fetchone()
+    row = conn.execute(
+        'SELECT 1 FROM staged_changes WHERE resource_name = ? AND user_email = ?', 
+        (resource_name, user_email)
+    ).fetchone()
     conn.close()
     return row is not None
 

@@ -1,8 +1,20 @@
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
+import 'auth_provider.dart';
 
 class ContactsProvider with ChangeNotifier {
-  final ApiService _apiService = ApiService();
+  late final ApiService _apiService;
+  final AuthProvider _authProvider;
+
+  ContactsProvider(this._authProvider) {
+    _apiService = ApiService(
+      onAuthenticationExpired: () {
+        // Handle authentication expiry
+        debugPrint('Authentication expired, signing out user');
+        _authProvider.logout();
+      },
+    );
+  }
 
   List<dynamic> _contacts = [];
   List<dynamic> _contactsNeedingFix = [];
@@ -30,7 +42,8 @@ class ContactsProvider with ChangeNotifier {
     notifyListeners();
 
     try {
-      final result = await _apiService.syncContacts();
+      final idToken = await _authProvider.getIdToken();
+      final result = await _apiService.syncContacts(idToken);
       _syncedCount = result['synced_count'] ?? 0;
       _lastSyncTime = DateTime.now();
 
@@ -51,7 +64,9 @@ class ContactsProvider with ChangeNotifier {
     if (regionCode != null) _currentRegion = regionCode;
 
     try {
+      final idToken = await _authProvider.getIdToken();
       final result = await _apiService.getMissingExtensionContacts(
+        idToken: idToken,
         regionCode: _currentRegion,
       );
       _contactsNeedingFix = result['contacts'] ?? [];
@@ -70,7 +85,8 @@ class ContactsProvider with ChangeNotifier {
     notifyListeners();
 
     try {
-      _contacts = await _apiService.getContacts();
+      final idToken = await _authProvider.getIdToken();
+      _contacts = await _apiService.getContacts(idToken);
     } catch (e) {
       _errorMessage = 'Failed to load contacts: $e';
       debugPrint('Load all contacts error: $e');

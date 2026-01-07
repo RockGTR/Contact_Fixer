@@ -1,9 +1,18 @@
-import 'dart:io';
+import 'dart:io' show Platform;
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import '../models/country.dart';
 import '../services/api_service.dart';
+import 'auth_provider.dart';
 
 class SettingsProvider with ChangeNotifier {
+  final AuthProvider _authProvider;
+  late final ApiService _api;
+
+  SettingsProvider(this._authProvider) {
+    _api = ApiService(onAuthenticationExpired: () => _authProvider.logout());
+  }
+
   Country _defaultRegion = supportedCountries.firstWhere((c) => c.code == 'US');
   Country? _suggestedRegion;
   int _suggestedRegionCount = 0;
@@ -22,15 +31,32 @@ class SettingsProvider with ChangeNotifier {
     if (_initialized) return;
     _initialized = true;
 
-    // Get device locale
-    final String deviceLocale = Platform.localeName;
+    // Get device locale - platform-aware
+    String? deviceLocale;
     String countryCode = 'US'; // Default fallback
 
-    // Extract country code from locale (e.g., "en_US" -> "US")
-    if (deviceLocale.contains('_')) {
-      countryCode = deviceLocale.split('_').last.toUpperCase();
-    } else if (deviceLocale.length == 2) {
-      countryCode = deviceLocale.toUpperCase();
+    try {
+      if (kIsWeb) {
+        // On web, try to get locale from browser
+        // For now, we'll skip and just use US as default
+        // The region suggestion will still work via _analyzeRegions()
+        debugPrint('Running on web - using default region US');
+      } else {
+        // On mobile, use Platform.localeName
+        deviceLocale = Platform.localeName;
+        debugPrint('Device locale: $deviceLocale');
+      }
+
+      // Extract country code from locale (e.g., "en_US" -> "US")
+      if (deviceLocale != null) {
+        if (deviceLocale.contains('_')) {
+          countryCode = deviceLocale.split('_').last.toUpperCase();
+        } else if (deviceLocale.length == 2) {
+          countryCode = deviceLocale.toUpperCase();
+        }
+      }
+    } catch (e) {
+      debugPrint('Error getting locale: $e - using default US');
     }
 
     // Find matching country
@@ -39,9 +65,7 @@ class SettingsProvider with ChangeNotifier {
       _defaultRegion = country;
     }
 
-    debugPrint(
-      'Device locale: $deviceLocale -> Country: ${_defaultRegion.code}',
-    );
+    debugPrint('Selected country: ${_defaultRegion.code}');
     notifyListeners();
 
     // Analyze regions to find best suggestion
@@ -51,7 +75,8 @@ class SettingsProvider with ChangeNotifier {
   /// Analyze regions and suggest better option if available
   Future<void> _analyzeRegions() async {
     try {
-      final result = await ApiService().analyzeRegions();
+      final idToken = await _authProvider.getIdToken();
+      final result = await _api.analyzeRegions(idToken);
       final regions = result['regions'] as List<dynamic>?;
 
       if (regions == null || regions.isEmpty) return;

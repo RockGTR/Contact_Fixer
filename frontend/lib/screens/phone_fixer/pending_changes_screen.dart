@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../services/api_service.dart';
+import '../../mixins/auth_token_mixin.dart';
 import 'utils/phone_fixer_utils.dart';
 import 'widgets/summary_card.dart';
 import 'widgets/change_card.dart';
@@ -14,8 +15,9 @@ class PendingChangesScreen extends StatefulWidget {
   State<PendingChangesScreen> createState() => _PendingChangesScreenState();
 }
 
-class _PendingChangesScreenState extends State<PendingChangesScreen> {
-  final ApiService _api = ApiService();
+class _PendingChangesScreenState extends State<PendingChangesScreen>
+    with AuthTokenMixin {
+  late final ApiService _api;
   Map<String, dynamic>? _data;
   bool _isLoading = true;
   bool _isPushing = false;
@@ -98,13 +100,15 @@ class _PendingChangesScreenState extends State<PendingChangesScreen> {
   @override
   void initState() {
     super.initState();
+    _api = createApiService(context);
     _loadPendingChanges();
   }
 
   Future<void> _loadPendingChanges() async {
     setState(() => _isLoading = true);
     try {
-      final result = await _api.getPendingChanges();
+      final idToken = await getIdToken(context);
+      final result = await _api.getPendingChanges(idToken);
       setState(() {
         _data = result;
         _isLoading = false;
@@ -117,7 +121,8 @@ class _PendingChangesScreenState extends State<PendingChangesScreen> {
   Future<void> _pushToGoogle() async {
     setState(() => _isPushing = true);
     try {
-      final result = await _api.pushToGoogle();
+      final idToken = await getIdToken(context);
+      final result = await _api.pushToGoogle(idToken);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -146,7 +151,9 @@ class _PendingChangesScreenState extends State<PendingChangesScreen> {
       regionCode: widget.regionCode,
       onSave: (newName, newPhone) async {
         try {
+          final idToken = await getIdToken(context);
           await _api.stageFix(
+            idToken: idToken,
             resourceName: change['resource_name'],
             contactName: change['contact_name'],
             originalPhone: change['original_phone'],
@@ -197,7 +204,8 @@ class _PendingChangesScreenState extends State<PendingChangesScreen> {
 
     setState(() => _isLoading = true);
     try {
-      await _api.clearStaged();
+      final idToken = await getIdToken(context);
+      await _api.clearStaged(idToken);
       _loadPendingChanges();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -302,7 +310,9 @@ class _PendingChangesScreenState extends State<PendingChangesScreen> {
                         change: change,
                         onEdit: () => _editPendingChange(change),
                         onDelete: () async {
+                          final idToken = await getIdToken(context);
                           await _api.removeStagedChange(
+                            idToken,
                             change['resource_name'],
                           );
                           _loadPendingChanges();

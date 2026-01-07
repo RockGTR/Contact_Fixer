@@ -1,14 +1,54 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:flutter/foundation.dart' show kIsWeb;
 
 class ApiService {
-  // Use 10.0.2.2 for Android emulator to reach host machine's localhost
+  // Callback for when authentication expires (401 error)
+  final Function()? onAuthenticationExpired;
+
+  ApiService({this.onAuthenticationExpired});
+
+  // Use localhost for web, 10.0.2.2 for Android emulator
   // For physical device, use your computer's IP address
-  static const String _baseUrl = 'http://10.0.2.2:8000';
+  static String get _baseUrl {
+    if (kIsWeb) {
+      return 'http://localhost:8000';
+    } else {
+      return 'http://10.0.2.2:8000';
+    }
+  }
+
+  /// Get authentication headers with Google ID token
+  Future<Map<String, String>> _getHeaders(String? idToken) async {
+    final headers = <String, String>{'Content-Type': 'application/json'};
+
+    if (idToken != null) {
+      headers['Authorization'] = 'Bearer $idToken';
+    }
+
+    return headers;
+  }
+
+  /// Handle HTTP response and check for authentication errors
+  void _handleResponse(http.Response response) {
+    if (response.statusCode == 401) {
+      // Token expired or invalid
+      if (onAuthenticationExpired != null) {
+        onAuthenticationExpired!();
+      }
+      throw Exception('Authentication expired. Please sign in again.');
+    }
+  }
 
   /// Syncs contacts from Google to the local database.
-  Future<Map<String, dynamic>> syncContacts() async {
-    final response = await http.post(Uri.parse('$_baseUrl/contacts/sync'));
+  Future<Map<String, dynamic>> syncContacts(String? idToken) async {
+    final headers = await _getHeaders(idToken);
+    final response = await http.post(
+      Uri.parse('$_baseUrl/contacts/sync'),
+      headers: headers,
+    );
+
+    _handleResponse(response);
 
     if (response.statusCode == 200) {
       return jsonDecode(response.body);
@@ -18,8 +58,14 @@ class ApiService {
   }
 
   /// Gets all contacts from the local database.
-  Future<List<dynamic>> getContacts() async {
-    final response = await http.get(Uri.parse('$_baseUrl/contacts/'));
+  Future<List<dynamic>> getContacts(String? idToken) async {
+    final headers = await _getHeaders(idToken);
+    final response = await http.get(
+      Uri.parse('$_baseUrl/contacts/'),
+      headers: headers,
+    );
+
+    _handleResponse(response);
 
     if (response.statusCode == 200) {
       return jsonDecode(response.body);
@@ -30,11 +76,16 @@ class ApiService {
 
   /// Gets contacts that need phone number standardization (excluding staged).
   Future<Map<String, dynamic>> getMissingExtensionContacts({
+    required String? idToken,
     String regionCode = 'US',
   }) async {
+    final headers = await _getHeaders(idToken);
     final response = await http.get(
       Uri.parse('$_baseUrl/contacts/missing_extension?region=$regionCode'),
+      headers: headers,
     );
+
+    _handleResponse(response);
 
     if (response.statusCode == 200) {
       return jsonDecode(response.body);
@@ -43,7 +94,7 @@ class ApiService {
     }
   }
 
-  /// Checks the backend authentication status.
+  /// Checks the backend authentication status (public endpoint).
   Future<Map<String, dynamic>> getAuthStatus() async {
     final response = await http.get(Uri.parse('$_baseUrl/auth/status'));
 
@@ -55,10 +106,14 @@ class ApiService {
   }
 
   /// Analyzes contacts across multiple regions and returns counts.
-  Future<Map<String, dynamic>> analyzeRegions() async {
+  Future<Map<String, dynamic>> analyzeRegions(String? idToken) async {
+    final headers = await _getHeaders(idToken);
     final response = await http.get(
       Uri.parse('$_baseUrl/contacts/analyze_regions'),
+      headers: headers,
     );
+
+    _handleResponse(response);
 
     if (response.statusCode == 200) {
       return jsonDecode(response.body);
@@ -72,6 +127,7 @@ class ApiService {
   /// Stage a contact fix for later pushing to Google.
   /// [action] should be 'accept', 'reject', or 'edit'
   Future<Map<String, dynamic>> stageFix({
+    required String? idToken,
     required String resourceName,
     required String contactName,
     required String originalPhone,
@@ -79,9 +135,10 @@ class ApiService {
     required String action,
     String? newName,
   }) async {
+    final headers = await _getHeaders(idToken);
     final response = await http.post(
       Uri.parse('$_baseUrl/contacts/stage_fix'),
-      headers: {'Content-Type': 'application/json'},
+      headers: headers,
       body: jsonEncode({
         'resource_name': resourceName,
         'contact_name': contactName,
@@ -92,6 +149,8 @@ class ApiService {
       }),
     );
 
+    _handleResponse(response);
+
     if (response.statusCode == 200) {
       return jsonDecode(response.body);
     } else {
@@ -100,10 +159,14 @@ class ApiService {
   }
 
   /// Get all pending staged changes.
-  Future<Map<String, dynamic>> getPendingChanges() async {
+  Future<Map<String, dynamic>> getPendingChanges(String? idToken) async {
+    final headers = await _getHeaders(idToken);
     final response = await http.get(
       Uri.parse('$_baseUrl/contacts/pending_changes'),
+      headers: headers,
     );
+
+    _handleResponse(response);
 
     if (response.statusCode == 200) {
       return jsonDecode(response.body);
@@ -113,11 +176,15 @@ class ApiService {
   }
 
   /// Remove a specific staged change.
-  Future<void> removeStagedChange(String resourceName) async {
+  Future<void> removeStagedChange(String? idToken, String resourceName) async {
+    final headers = await _getHeaders(idToken);
     final encodedName = Uri.encodeQueryComponent(resourceName);
     final response = await http.delete(
       Uri.parse('$_baseUrl/contacts/staged/remove?resource_name=$encodedName'),
+      headers: headers,
     );
+
+    _handleResponse(response);
 
     if (response.statusCode != 200) {
       throw Exception('Failed to remove staged: ${response.statusCode}');
@@ -125,8 +192,14 @@ class ApiService {
   }
 
   /// Clear all staged changes.
-  Future<void> clearStaged() async {
-    final response = await http.delete(Uri.parse('$_baseUrl/contacts/staged'));
+  Future<void> clearStaged(String? idToken) async {
+    final headers = await _getHeaders(idToken);
+    final response = await http.delete(
+      Uri.parse('$_baseUrl/contacts/staged'),
+      headers: headers,
+    );
+
+    _handleResponse(response);
 
     if (response.statusCode != 200) {
       throw Exception('Failed to clear staged: ${response.statusCode}');
@@ -134,10 +207,14 @@ class ApiService {
   }
 
   /// Push all staged changes to Google Contacts.
-  Future<Map<String, dynamic>> pushToGoogle() async {
+  Future<Map<String, dynamic>> pushToGoogle(String? idToken) async {
+    final headers = await _getHeaders(idToken);
     final response = await http.post(
       Uri.parse('$_baseUrl/contacts/push_to_google'),
+      headers: headers,
     );
+
+    _handleResponse(response);
 
     if (response.statusCode == 200) {
       return jsonDecode(response.body);

@@ -1,116 +1,423 @@
 # API Reference
 
 ## Base URL
+
+The Flutter app automatically uses the correct base URL based on the platform:
+- **Web (Chrome/Browser)**: `http://localhost:8000`
 - **Android Emulator**: `http://10.0.2.2:8000`
 - **Physical Device**: `http://<your-mac-ip>:8000`
-- **Local Development**: `http://localhost:8000`
+
+> **Note**: The platform detection is handled automatically in `api_service.dart` using Flutter's `kIsWeb` constant.
+
+## 🔒 Authentication
+
+**All endpoints (except public ones) require authentication**.
+
+### Authentication Header
+```
+Authorization: Bearer <google_id_token>
+```
+
+The Google ID token is obtained from the Flutter `google_sign_in` package and sent with every API request.
+
+### Public Endpoints
+The following endpoints do NOT require authentication:
+- `GET /` - Root/health check
+- `GET /health` - Detailed health check
+- `GET /docs` - API documentation
+- `GET /auth/status` - Backend OAuth status
+
+### Authentication Errors
+- **401 Unauthorized**: Missing or invalid ID token
+- **403 Forbidden**: Email not verified
+- **429 Too Many Requests**: Rate limit exceeded
+
+---
+
+## CORS Configuration
+
+The backend is configured to accept cross-origin requests from:
+- `http://localhost:3000` (Flutter web app)
+- `http://127.0.0.1:3000`
+
+Configured via `CORS_ORIGINS` environment variable.
+
+**Allowed Methods**: GET, POST, DELETE  
+**Allowed Headers**: Authorization, Content-Type
 
 ---
 
 ## Authentication Endpoints
 
 ### GET `/auth/status`
-Check backend authentication status.
+**Public endpoint** - Check backend OAuth authentication status (for server-to-Google API).
+
+**Response**:
+```json
+{
+  "status": "authenticated|unauthenticated",
+  "user": "Display Name",
+  "email": "user@example.com"
+}
+```
 
 ### GET `/auth/login`
-Triggers OAuth flow.
+**Public endpoint** - Triggers backend OAuth flow (opens browser for server authentication).
 
 ---
 
 ## Contact Endpoints
 
+All contact endpoints require authentication and automatically filter data by authenticated user.
+
 ### GET `/contacts/`
-List all contacts in local database.
+List all contacts for the authenticated user.
 
-### POST `/contacts/sync`
-Sync contacts from Google.
+**Rate Limit**: 30 requests/minute
 
-### GET `/contacts/missing_extension?region=XX`
-Get contacts needing phone number standardization (excludes already staged).
+**Headers**:
+```
+Authorization: Bearer <id_token>
+```
 
-| Parameter | Type   | Default | Description |
-|-----------|--------|---------|-------------|
-| `region`  | string | `"US"`  | ISO country code |
-
-**Response Example**:
+**Response**:
 ```json
 [
   {
-    "resource_name": "people/123",
-    "name": "Jane Doe",
-    "phone": "555-0100",
-    "suggested": "+15550100",
-    "updated_at": "2023-10-27T10:00:00Z"
+    "resource_name": "people/c123",
+    "user_email": "user@example.com",
+    "given_name": "John Doe",
+    "phone_number": "<encrypted>",
+    "raw_json": "<encrypted>",
+    "etag": "..."
   }
 ]
 ```
 
+> **Note**: `phone_number` and `raw_json` are automatically decrypted by the backend.
+
+### POST `/contacts/sync`
+Sync contacts from Google People API for the authenticated user.
+
+**Rate Limit**: 5 requests/minute
+
+**Headers**:
+```
+Authorization: Bearer <id_token>
+```
+
+**Response**:
+```json
+{
+  "status": "success",
+  "synced_count": 150,
+  "total_from_google": 150
+}
+```
+
+### GET `/contacts/missing_extension?region=XX`
+Get contacts needing phone number standardization.
+
+**Rate Limit**: 20 requests/minute
+
+**Headers**:
+```
+Authorization: Bearer <id_token>
+```
+
+**Parameters**:
+- `region` (string): 2-letter ISO country code (e.g., "US", "IN", "GB")
+
+**Response**:
+```json
+{
+  "count": 25,
+  "contacts": [
+    {
+      "resource_name": "people/c123",
+      "name": "John Doe",
+      "phone": "5551234567",
+      "suggested": "+15551234567",
+      "updated_at": "2026-01-07T..."
+    }
+  ]
+}
+```
+
+**Errors**:
+- `400 Bad Request`: Invalid region code format
+
 ### GET `/contacts/analyze_regions`
-Analyzes contacts across regions, returns top 5 by count.
+Analyze contacts across multiple regions.
+
+**Rate Limit**: 10 requests/minute
+
+**Headers**:
+```
+Authorization: Bearer <id_token>
+```
+
+**Response**:
+```json
+{
+  "regions": [
+    {"region": "US", "count": 45},
+    {"region": "IN", "count": 12}
+  ]
+}
+```
 
 ---
 
-## Staging Endpoints (New)
+## Staging Endpoints
 
 ### POST `/contacts/stage_fix`
 Stage a contact fix for later pushing to Google.
+
+**Rate Limit**: 60 requests/minute
+
+**Headers**:
+```
+Authorization: Bearer <id_token>
+Content-Type: application/json
+```
 
 **Request Body**:
 ```json
 {
   "resource_name": "people/c123",
   "contact_name": "John Doe",
-  "original_phone": "9794228264",
-  "new_phone": "+919794228264",
-  "action": "accept",  // accept, reject, or edit
-  "new_name": "John Updated" // optional (for edit action)
+  "original_phone": "5551234567",
+  "new_phone": "+15551234567",
+  "action": "accept",
+  "new_name": "Johnny Doe"
 }
 ```
 
-### GET `/contacts/pending_changes`
-Get all staged changes with summary.
+**Field Validation**:
+- `resource_name`: Must match `^people/[a-zA-Z0-9]+$`
+- `action`: Must be "accept", "reject", or "edit"
+- `contact_name`, `original_phone`, `new_phone`: Max 200 characters
+- `new_name`: Optional, max 200 characters
 
 **Response**:
 ```json
 {
-  "summary": {"total": 10, "accepts": 7, "rejects": 2, "edits": 1},
-  "changes": [...]
+  "status": "staged",
+  "action": "accept",
+  "resource_name": "people/c123"
 }
 ```
 
-### DELETE `/contacts/staged/remove?resource_name=...`
+**Errors**:
+- `400 Bad Request`: Validation failed
+- `500 Internal Server Error`: Failed to stage
+
+### GET `/contacts/pending_changes`
+Get all staged changes and summary for the authenticated user.
+
+**Rate Limit**: 20 requests/minute
+
+**Headers**:
+```
+Authorization: Bearer <id_token>
+```
+
+**Response**:
+```json
+{
+  "summary": {
+    "total": 15,
+    "accepts": 10,
+    "rejects": 3,
+    "edits": 2
+  },
+  "changes": [
+    {
+      "id": 1,
+      "resource_name": "people/c123",
+      "user_email": "user@example.com",
+      "contact_name": "John Doe",
+      "original_phone": "5551234567",
+      "new_phone": "+15551234567",
+      "action": "accept",
+      "created_at": "2026-01-07T...",
+      "updated_at": "2026-01-07T..."
+    }
+  ]
+}
+```
+
+### DELETE `/contacts/staged/remove?resource_name=people/c123`
 Remove a specific staged change.
 
+**Rate Limit**: 30 requests/minute
+
+**Headers**:
+```
+Authorization: Bearer <id_token>
+```
+
 **Parameters**:
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `resource_name` | string | The full resource name (e.g., `people/c123`) |
+- `resource_name` (string, required): Must start with "people/"
+
+**Response**:
+```json
+{
+  "status": "removed",
+  "resource_name": "people/c123"
+}
+```
+
+**Errors**:
+- `400 Bad Request`: Invalid resource_name format
 
 ### DELETE `/contacts/staged`
-Clear *all* staged changes from the database.
+Clear all staged changes for the authenticated user.
+
+**Rate Limit**: 10 requests/minute
+
+**Headers**:
+```
+Authorization: Bearer <id_token>
+```
+
+**Response**:
+```json
+{
+  "status": "cleared"
+}
+```
 
 ### POST `/contacts/push_to_google`
-Apply all accepted/edited changes to Google Contacts.
+Push all staged changes to Google Contacts.
+
+**Rate Limit**: 3 requests/minute (strict limit for critical operation)
+
+**Headers**:
+```
+Authorization: Bearer <id_token>
+```
 
 **Response**:
 ```json
 {
   "status": "completed",
-  "pushed": 8,
-  "failed": 0,
-  "skipped": 2,
-  "details": {...}
+  "pushed": 10,
+  "failed": 1,
+  "skipped": 3,
+  "details": {
+    "success": ["John Doe", "Jane Smith"],
+    "failed": [
+      {"name": "Bob Wilson", "error": "Contact not found"}
+    ],
+    "skipped": ["Rejected Contact"]
+  }
 }
 ```
+
+---
+
+## Rate Limiting
+
+**Default**: 60 requests/minute per user (configurable via `RATE_LIMIT_PER_MINUTE`)
+
+**Per-Endpoint Limits**:
+- `/contacts/sync`: 5/min (expensive Google API call)
+- `/contacts/push_to_google`: 3/min (critical operation)
+- `/contacts/`: 30/min
+- `/contacts/missing_extension`: 20/min
+- `/contacts/stage_fix`: 60/min
+- `/contacts/pending_changes`: 20/min
+- `/contacts/staged/remove`: 30/min
+- `/contacts/staged`: 10/min
+- `/contacts/analyze_regions`: 10/min
+
+**Rate Limit Response** (429):
+```json
+{
+  "error": "Rate limit exceeded"
+}
+```
+
+---
+
+## Security Features
+
+### Data Encryption
+- `phone_number` and `raw_json` fields are encrypted at rest using Fernet (AES-256)
+- Automatic encryption on write, decryption on read
+- Encryption key stored in `ENCRYPTION_KEY` environment variable
+
+### User Isolation
+- All data queries filtered by authenticated user's email
+- Users can only access their own contacts and staged changes
+- Multi-tenant architecture with complete data separation
+
+### Input Validation
+- Strict Pydantic models with regex patterns
+- Length limits on all string fields
+- Type validation on all inputs
+- Custom validators for enums and formats
+
+### Audit Logging
+- All authentication events logged
+- Rate limit violations logged
+- Invalid input attempts logged
+- Security events include user email and endpoint
+
+---
+
+## Error Responses
+
+### Standard Error Format
+```json
+{
+  "detail": "Error message",
+  "type": "error_type"
+}
+```
+
+### Common Error Types
+- `authentication_required`: 401, missing Authorization header
+- `invalid_token_format`: 401, malformed token
+- `invalid_token`: 401, token verification failed
+- `email_not_verified`: 403, Google email not verified
+- `invalid_input`: 400, validation failed
 
 ---
 
 ## Health Check
 
 ### GET `/health`
-Check if the API is running.
+**Public endpoint** - Detailed health check with security status.
 
 **Response**:
 ```json
-{"status": "ok"}
+{
+  "status": "ok",
+  "environment": "development",
+  "security": {
+    "authentication": "enabled",
+    "rate_limiting": "enabled",
+    "encryption": "enabled"
+  }
+}
 ```
+
+---
+
+## Migration from v0.x
+
+If upgrading from version 0.x (no authentication):
+
+1. **Backend**: Run migration script to add `user_email` and encrypt data
+2. **Frontend**: Update all API calls to include `Authorization` header
+3. **Testing**: Verify authentication flow end-to-end
+
+See [FRONTEND_AUTH_INTEGRATION.md](FRONTEND_AUTH_INTEGRATION.md) for details.
+
+---
+
+**Last Updated**: 2026-01-07  
+**API Version**: 1.0.0 (Security Hardening Release)

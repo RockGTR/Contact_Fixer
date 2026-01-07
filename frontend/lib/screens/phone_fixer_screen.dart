@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_card_swiper/flutter_card_swiper.dart';
+import 'package:provider/provider.dart';
 
 import '../services/api_service.dart';
+import '../providers/auth_provider.dart';
+import '../mixins/auth_token_mixin.dart';
 import 'phone_fixer/pending_changes_screen.dart';
 import 'phone_fixer/utils/phone_fixer_utils.dart';
 import 'phone_fixer/widgets/control_toolbar.dart';
@@ -19,9 +22,10 @@ class PhoneFixerScreen extends StatefulWidget {
   State<PhoneFixerScreen> createState() => _PhoneFixerScreenState();
 }
 
-class _PhoneFixerScreenState extends State<PhoneFixerScreen> {
+class _PhoneFixerScreenState extends State<PhoneFixerScreen>
+    with AuthTokenMixin {
   final CardSwiperController _controller = CardSwiperController();
-  final ApiService _api = ApiService();
+  late final ApiService _api;
 
   List<Map<String, dynamic>> _contacts = [];
   bool _isLoading = true;
@@ -89,13 +93,15 @@ class _PhoneFixerScreenState extends State<PhoneFixerScreen> {
   @override
   void initState() {
     super.initState();
+    _api = createApiService(context);
     _loadContacts();
     _loadPendingStats();
   }
 
   Future<void> _loadPendingStats() async {
     try {
-      final result = await _api.getPendingChanges();
+      final idToken = await getIdToken(context);
+      final result = await _api.getPendingChanges(idToken);
       if (mounted) {
         setState(() => _pendingStats = result['summary'] ?? {});
       }
@@ -107,7 +113,9 @@ class _PhoneFixerScreenState extends State<PhoneFixerScreen> {
   Future<void> _loadContacts() async {
     setState(() => _isLoading = true);
     try {
+      final idToken = await getIdToken(context);
       final result = await _api.getMissingExtensionContacts(
+        idToken: idToken,
         regionCode: widget.regionCode,
       );
       setState(() {
@@ -131,7 +139,9 @@ class _PhoneFixerScreenState extends State<PhoneFixerScreen> {
     String? newName,
   }) async {
     try {
+      final idToken = await getIdToken(context);
       await _api.stageFix(
+        idToken: idToken,
         resourceName: contact['resource_name'],
         contactName: contact['name'],
         originalPhone: contact['phone'],
@@ -216,8 +226,10 @@ class _PhoneFixerScreenState extends State<PhoneFixerScreen> {
     final contactsToFix = List<Map<String, dynamic>>.from(_contacts);
 
     try {
+      final idToken = await getIdToken(context);
       for (final contact in contactsToFix) {
         await _api.stageFix(
+          idToken: idToken,
           resourceName: contact['resource_name'],
           contactName: contact['name'],
           originalPhone: contact['phone'],

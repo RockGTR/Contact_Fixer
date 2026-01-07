@@ -17,10 +17,23 @@ void main() {
             return auth;
           },
         ),
-        ChangeNotifierProvider(create: (context) => ContactsProvider()),
-        ChangeNotifierProvider(
+        ChangeNotifierProxyProvider<AuthProvider, ContactsProvider>(
+          create: (context) => ContactsProvider(
+            Provider.of<AuthProvider>(context, listen: false),
+          ),
+          update: (context, auth, previous) =>
+              previous ?? ContactsProvider(auth),
+        ),
+        ChangeNotifierProxyProvider<AuthProvider, SettingsProvider>(
           create: (context) {
-            final settings = SettingsProvider();
+            final auth = Provider.of<AuthProvider>(context, listen: false);
+            final settings = SettingsProvider(auth);
+            settings.initialize();
+            return settings;
+          },
+          update: (context, auth, previous) {
+            if (previous != null) return previous;
+            final settings = SettingsProvider(auth);
             settings.initialize();
             return settings;
           },
