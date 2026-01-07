@@ -1,205 +1,313 @@
-# Contact Fixer Architecture
+# Contact Fixer - Architecture
 
 ## Overview
-Contact Fixer is a **security-hardened** mobile application designed to standardize phone number formats in a user's Google Contacts using the E.164 international format. Features enterprise-grade security with encryption, authentication, and multi-user support.
 
-## Tech Stack
+Contact Fixer is a secure, multi-platform application that helps users standardize phone numbers in their Google Contacts to E.164 format. Built with Flutter (frontend) and FastAPI (backend), it features enterprise-grade security with Google OAuth authentication, field-level encryption, and multi-user support.
 
-### Frontend (Mobile & Web)
-- **Framework**: Flutter (Dart)
-- **Platform Support**: Android, iOS, Web (Chrome)
-- **Authentication**: 
-  - Native Google Sign-In (`google_sign_in` v6.2.1)
-  - Web: Legacy popup authentication (FedCM disabled for Testing mode compatibility)
-  - Platform-aware configuration in `index.html`
-  - **Security**: Google ID tokens sent with every API request
-- **State Management**: Provider pattern with `AuthProvider` for token management
-- **Platform-Aware Features**:
-  - Automatic API URL detection (localhost for web, 10.0.2.2 for Android emulator)
-  - Locale detection with web compatibility
-- **Role**: Handles UI, User Authentication (Google Sign-In), and displaying contacts
+## System Architecture
 
-### Backend (Logic Layer)
-- **Language**: Python 3.x
-- **Framework**: FastAPI
-- **Communication**: REST API (JSON)
-- **Security**:
-  - **Authentication**: Google ID token verification on all endpoints
-  - **Encryption**: Field-level encryption (Fernet/AES-256) for sensitive data
-  - **Rate Limiting**: Per-user and per-IP throttling (default: 60 req/min)
-  - **Input Validation**: Strict Pydantic models with regex patterns
-  - **CORS**: Restricted to `localhost:3000` (configurable via `.env`)
-  - **Security Headers**: X-Frame-Options, X-XSS-Protection, HSTS (production)
-  - **Audit Logging**: Security event logging for compliance
-- **Capabilities**:
-    - **Google Auth**: OAuth 2.0 Flow (backend-side for server credentials)
-    - **Token Verification**: Validates Google ID tokens from Flutter app
-    - **Contact Sync**: One-way fetch from Google to Local DB (per-user)
-    - **Fixing Logic**: Analyzes and standardizes phone numbers using `libphonenumber`
-    - **Write-Back**: Supports creating and updating contacts on Google
-    - **Multi-User Support**: Complete data isolation between users
-    - **Data Consistency**: 
-        - **Write-Through Caching**: Modifications immediately update local SQLite database
-        - **Robust Updates (Pre-Fetch)**: Fetches latest `etag` before updates to prevent conflicts
-        - **Encrypted Storage**: All sensitive fields encrypted at rest
+### High-Level Components
 
-## Project Structure
 ```
-Contact_Fixer/
-├── .env                     # Environment variables (NOT in git)
-├── .env.example             # Environment template
-├── backend/                 # Python API Source
-│   ├── main.py              # Entry point (FastAPI with security middleware)
-│   ├── core/                # Core security infrastructure
-│   │   ├── config.py        # Environment configuration
-│   │   ├── security.py      # Token verification, encryption
-│   │   └── logging_config.py # Security logging
-│   ├── middleware/          # Security middleware
-│   │   ├── auth_middleware.py # Google ID token verification
-│   │   └── rate_limit.py    # Rate limiting
-│   ├── migrations/          # Database migrations
-│   │   └── migrate_to_secure.py # Security migration script
-│   ├── routers/             # API route handlers (all protected)
-│   │   ├── auth.py          # Authentication endpoints
-│   │   └── contacts.py      # Contact management endpoints
-│   └── services/            # Business logic
-│       ├── auth_service.py  # OAuth 2.0 handling
-│       ├── contact_service.py # Contact operations
-│       └── db_service.py    # SQLite database with encryption
-├── frontend/                # Mobile App Source (Flutter)
-│   └── lib/
-│       ├── main.dart        # App Entry point
-│       ├── mixins/          # Helper mixins
-│       │   └── auth_token_mixin.dart # Auth token helper
-│       ├── models/          # Data models
-│       │   └── country.dart
-│       ├── providers/       # State management
-│       │   ├── auth_provider.dart      # Google Sign-In + token management
-│       │   ├── contacts_provider.dart  # With authentication
-│       │   └── settings_provider.dart
-│       ├── services/        # API client
-│       │   └── api_service.dart        # With auth headers
-├── frontend/                # Mobile App Source (Flutter)
-│   └── lib/
-│       ├── main.dart        # App Entry point
-│       ├── models/          # Data models
-│       │   └── country.dart
-│       ├── providers/       # State management
-│       │   ├── auth_provider.dart
-│       │   ├── contacts_provider.dart
-│       │   └── settings_provider.dart
-│       ├── services/        # API client
-│       │   └── api_service.dart
-│       ├── widgets/         # Shared widgets
-│       │   └── region/
-│       │       ├── country_picker_sheet.dart
-│       │       └── region_selector_button.dart
-│       └── screens/         # UI pages
-│           ├── login_screen.dart
-│           ├── home_screen.dart
-│           ├── home/
-│           │   └── widgets/  # Home-specific widgets
-│           ├── contacts_preview_screen.dart
-│           ├── contacts_preview/
-│           │   └── widgets/
-│           ├── phone_fixer_screen.dart
-│           └── phone_fixer/
-│               ├── views/    # View mode components
-│               │   ├── swipe_view_mode.dart
-│               │   └── list_view_mode.dart
-│               ├── widgets/  # Screen-specific widgets
-│               │   ├── contact_card.dart
-│               │   ├── control_toolbar.dart
-│               │   ├── stat_chip.dart
-│               │   ├── empty_state.dart
-│               │   ├── summary_card.dart
-│               │   └── change_card.dart
-│               ├── dialogs/  # Dialog components
-│               │   ├── edit_contact_dialog.dart
-│               │   └── edit_pending_dialog.dart
-│               ├── utils/    # Utility functions
-│               │   └── phone_fixer_utils.dart
-│               └── pending_changes_screen.dart
-├── docs/                    # Project Documentation
-├── venv/                    # Python Virtual Environment
-└── .gitignore               # Git Configuration
+┌─────────────────────┐         ┌──────────────────────┐
+│  Mobile App         │         │  Web Browser         │
+│  (Android/iOS)      │         │  (Chrome/Firefox)    │
+│  Flutter Framework  │         │  JavaScript/HTML/CSS │
+└──────────┬──────────┘         └──────────┬───────────┘
+           │                               │
+           │ ID Token (JWT)                │ Access Token
+           │                               │
+           └───────────┬───────────────────┘
+                       │
+              ┌────────▼─────────┐
+              │  Authentication  │
+              │    Middleware    │
+              │   Token Verify   │
+              └────────┬─────────┘
+                       │
+              ┌────────▼─────────┐
+              │  FastAPI Backend │
+              │  ┌─────────────┐ │
+              │  │Rate Limiter │ │
+              │  │CORS Protect │ │
+              │  └─────────────┘ │
+              └────────┬─────────┘
+                       │
+              ┌────────▼─────────┐
+              │ Security Layer   │
+              │ • Token Verify   │
+              │ • User Extract   │
+              │ • Multi-User     │
+              └────────┬─────────┘
+                       │
+              ┌────────▼─────────┐         ┌─────────────┐
+              │ SQLite Database  │◄────────┤ Encryption  │
+              │ • Encrypted Data │         │  AES-256    │
+              │ • User Isolation │         └─────────────┘
+              └──────────────────┘
 ```
-
-## Authentication Flow
-
-### Frontend (Mobile & Web)
-1. User clicks "Sign in with Google"
-2. **Mobile**: Native popup appears.
-3. **Web**: Google Sign-In popup/redirect appears (requires `google-signin-client_id` meta tag).
-4. User selects Google account
-5. App receives user info (name, email)
-6. App is now authenticated for UI
-
-### Backend (Server-Side)
-1. Backend loads `backend/credentials.json` (Client Secret)
-2. First API call triggers browser OAuth flow on server
-3. Access/Refresh tokens stored in `backend/token.json`
-4. Subsequent calls use stored tokens
-
-**Security**: Both JSON files are git-ignored to prevent credential leaks.
 
 ## Data Flow
-```mermaid
-graph TD
-    User((User))
-    FE[Flutter Mobile App]
-    BE[FastAPI Backend]
-    DB[(SQLite Database)]
-    GAPI[Google People API]
 
-    User -->|Interacts| FE
-    FE -->|"HTTP Requests (REST)"| BE
-    
-    subgraph Backend System
-    BE <-->|"Read/Write"| DB
-    end
-    
-    subgraph External Services
-    BE <-->|"Sync/Push"| GAPI
-    end
+### Version 1.2 Architecture
 
-    %% Detailed Flows
-    FE -.->|"POST /contacts/sync"| BE
-    BE -.->|"Fetch Contacts"| GAPI
-    GAPI -.->|"Contacts Data"| BE
-    BE -.->|"Store Contacts"| DB
+Contact Fixer v1.2 implements a secure, multi-platform architecture with enterprise-grade authentication and data protection.
 
-    FE -.->|"POST /contacts/stage_fix"| BE
-    BE -.->|"Insert Change"| DB
+![Data Flow Diagram v1.2](file:///Users/rockgtr/.gemini/antigravity/brain/2fd8178c-1551-4895-be7a-8ae290f9df63/data_flow_v1_2_1767810773237.png)
 
-    FE -.->|"POST /contacts/push_to_google"| BE
-    BE -.->|"Read Staged Changes"| DB
-    BE -.->|"Update Contact"| GAPI
+### Authentication Flow
+
+#### Mobile (Android/iOS)
+1. User taps "Sign in with Google"
+2. Google Sign-In SDK generates **ID Token (JWT)**
+3. ID token sent to backend with every API request
+4. Authentication Middleware verifies token with Google's public keys
+5. User email extracted and request processed
+
+#### Web (Browser)
+1. User clicks "Sign in with Google"  
+2. Google OAuth popup generates **Access Token**
+3. Frontend calls `/auth/exchange_token` with access token
+4. Backend verifies access token with Google's userinfo endpoint
+5. Backend returns access token as "ID token" for subsequent requests
+6. Access token sent with every API request
+7. Authentication Middleware verifies via userinfo endpoint
+
+### Security Architecture
+
+#### Layer 1: Platform Authentication
+- **Mobile**: Direct ID token from Google Sign-In SDK
+- **Web**: Access token → Backend exchange → "ID token"
+- Both paths validated by Google OAuth servers
+
+#### Layer 2: Backend Middleware
+- **Authentication Middleware**: Verifies all tokens (ID tokens + access tokens)
+- **Rate Limiter**: 60 requests/minute per user
+- **CORS Protection**: Whitelisted origins only
+
+#### Layer 3: Data Protection
+- **Field Encryption**: AES-256 Fernet encryption for sensitive data
+- **Multi-User Isolation**: Filtering by authenticated user email
+- **Audit Logging**: All authentication events tracked
+
+#### Layer 4: External API Security
+- **Google People API**: Calls made with user's OAuth credentials
+- **OAuth Token Verification**: Backend verifies tokens with Google servers
+
+### Data Flow Steps
+
+1. **Authentication Request**
+   ```
+   User → Platform → Google OAuth → Token → Backend
+   ```
+
+2. **Token Verification**
+   ```
+   Backend → Authentication Middleware → Google Verification → User Email
+   ```
+
+3. **API Request Processing**
+   ```
+   Token Verified → User Identified → Database Query (filtered) → Response
+   ```
+
+4. **Data Storage**
+   ```
+   Plain Data → Field Encryption → Encrypted Storage → User Email Tagged
+   ```
+
+5. **Data Retrieval**
+   ```
+   User Email Filter → Encrypted Data → Field Decryption → Plain Response
+   ```
+
+### Request Flow Example: Sync Contacts
+
+**Mobile Flow**:
+```
+1. Mobile app: googleSignIn.signIn() → ID Token
+2. API call: POST /contacts/sync with "Authorization: Bearer <ID_TOKEN>"
+3. Middleware: Verify ID token → Extract email → Proceed
+4. Backend: Fetch from Google People API → Encrypt → Save with user_email
+5. Response: {status: "success", synced_count: 684}
 ```
 
-## Documentation Index
-- [Function Documentation](FUNCTION_DOCUMENTATION.md) - Details on Python functions
-- [API Reference](API_REFERENCE.md) - HTTP Endpoints
-- [Frontend Documentation](FRONTEND_DOCUMENTATION.md) - Flutter App details
-
-## Development Workflow
-
-### Backend
-```bash
-cd Contact_Fixer
-source venv/bin/activate
-uvicorn backend.main:app --reload --host 0.0.0.0
+**Web Flow**:
 ```
+1. Web app: googleSignIn.signIn() → Access Token
+2. Exchange: POST /auth/exchange_token {access_token: "<TOKEN>"}
+3. Backend: Verify with Google userinfo → Return access token
+4. API call: POST /contacts/sync with "Authorization: Bearer <ACCESS_TOKEN>"
+5. Middleware: Verify access token via userinfo → Extract email → Proceed
+6. Backend: Fetch from Google People API → Encrypt → Save with user_email
+7. Response: {status: "success", synced_count: 684}
+```
+
+### Security Guarantees
+
+✅ **Authentication**: Every protected endpoint requires valid Google token  
+✅ **Authorization**: Users can only access their own data  
+✅ **Encryption**: All sensitive data encrypted at rest (AES-256)  
+✅ **Rate Limiting**: Protection against abuse (60 req/min)  
+✅ **Audit Trail**: All security events logged  
+✅ **CORS Protection**: Controlled cross-origin access
+
+## Technology Stack
 
 ### Frontend
-```bash
-cd Contact_Fixer/frontend
-flutter pub get
-flutter run
+- **Framework**: Flutter 3.0+
+- **State Management**: Provider pattern
+- **HTTP Client**: http package
+- **Authentication**: google_sign_in (v6)
+  - Mobile: Direct ID token generation
+  - Web: Access token with backend exchange
+- **UI Components**: Material Design 3
+
+### Backend
+- **Framework**: FastAPI (Python)
+- **Database**: SQLite with field-level encryption
+- **Authentication**: Google OAuth 2.0 token verification
+- **Security**: 
+  - Cryptography (Fernet) for encryption
+  - SlowAPI for rate limiting
+  - CORS middleware
+- **External APIs**: Google People API
+
+### Security Stack
+- **Encryption**: AES-256 (Fernet)
+- **Token Verification**: Google OAuth public keys + userinfo endpoint
+- **Rate Limiting**: SlowAPI with in-memory storage
+- **Audit Logging**: Python logging with rotation
+
+## Database Schema
+
+### Contacts Table (Encrypted)
+```sql
+CREATE TABLE contacts (
+    id INTEGER PRIMARY KEY,
+    user_email TEXT NOT NULL,  -- For multi-user isolation
+    resource_name TEXT NOT NULL,
+    display_name TEXT,
+    phone_number TEXT,  -- ENCRYPTED with Fernet
+    parsed_region TEXT,
+    needs_fix BOOLEAN,
+    raw_json TEXT,  -- ENCRYPTED with Fernet
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_user_email ON contacts(user_email);
+CREATE INDEX idx_needs_fix ON contacts(needs_fix WHERE needs_fix = 1);
 ```
 
-## Google Cloud Console Setup
-1. Create OAuth 2.0 credentials (Android + Web client IDs)
-2. Configure OAuth consent screen with app name
-3. Add test users for apps in "Testing" mode
-4. Enable required APIs: People API, Identity Toolkit API
+### Pending Changes Table (Encrypted)
+```sql
+CREATE TABLE pending_changes (
+    id INTEGER PRIMARY KEY,
+    user_email TEXT NOT NULL,  -- For multi-user isolation
+    resource_name TEXT NOT NULL,
+    display_name TEXT,
+    old_phone TEXT,  -- ENCRYPTED
+    new_phone TEXT,  -- ENCRYPTED
+    status TEXT DEFAULT 'pending',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_pending_user ON pending_changes(user_email, status);
+```
+
+## API Endpoints
+
+### Authentication
+- `POST /auth/exchange_token` - Exchange web access_token for ID token
+
+### Contacts Management
+- `POST /contacts/sync` - Sync contacts from Google (authenticated)
+- `GET /contacts/missing_extension?region={code}` - Get contacts needing fixes (authenticated)
+- `POST /contacts/analyze_regions` - Analyze contact regions (authenticated)
+- `GET /contacts/pending_changes` - Get pending changes (authenticated)
+- `POST /contacts/push` - Push changes to Google (authenticated)
+
+### Staging
+- `POST /contacts/stage` - Stage a contact fix (authenticated)
+- `DELETE /contacts/stage/{id}` - Remove staged change (authenticated)
+- `POST /contacts/clear_staged` - Clear all staged changes (authenticated)
+
+All endpoints (except `/auth/exchange_token`) require `Authorization: Bearer <token>` header.
+
+## Security Model
+
+### Authentication Flow
+1. **Token Generation**:
+   - Mobile: Google Sign-In SDK → ID Token (JWT)
+   - Web: Google OAuth → Access Token → Backend Exchange → "ID Token"
+
+2. **Token Verification**:
+   - ID Tokens: Verified with Google's public keys
+   - Access Tokens: Verified via Google userinfo endpoint
+
+3. **User Identification**:
+   - Email extracted from verified token
+   - All database queries filtered by `user_email`
+
+### Data Protection
+- **At Rest**: AES-256 Fernet encryption for sensitive fields
+- **In Transit**: HTTPS (production)
+- **Access Control**: Per-user data isolation via email filtering
+
+### Rate Limiting
+- 60 requests per minute per user
+- Keyed by user email from authenticated token
+- Returns 429 Too Many Requests when exceeded
+
+### Audit Logging
+- All authentication attempts logged
+- Failed auth attempts tracked
+- Security events in separate log file (`backend/logs/security.log`)
+
+## Deployment Architecture
+
+### Development
+```
+Mobile/Web Client → localhost:8000 (Backend) → SQLite DB
+                       ↓
+                 Google APIs (OAuth + People)
+```
+
+### Production
+```
+Mobile/Web Client → HTTPS Load Balancer
+                       ↓
+                 Reverse Proxy (Nginx/Caddy)
+                       ↓
+                 FastAPI Backend (Gunicorn)
+                       ↓
+                 SQLite DB (encrypted volume)
+                       ↓
+                 Google APIs (OAuth + People)
+```
+
+## Performance Considerations
+
+- **Database**: SQLite with indexes on `user_email` and `needs_fix`
+- **Caching**: Token verification results cached per request
+- **Rate Limiting**: In-memory storage for rate limit counters
+- **Encryption**: Field-level only (not full-disk) for performance
+
+## Scalability
+
+Current architecture supports:
+- **Users**: Hundreds to low thousands
+- **Contacts per user**: Up to 10,000
+- **Requests**: 60/min per user
+
+For larger scale:
+- Migrate to PostgreSQL
+- Add Redis for caching and rate limiting
+- Implement connection pooling
+- Add CDN for static assets
+
+---
+
+**For deployment guide, see** [`docs/SECURITY.md`](SECURITY.md)  
+**For setup instructions, see** [`docs/SETUP_GUIDE.md`](SETUP_GUIDE.md)
