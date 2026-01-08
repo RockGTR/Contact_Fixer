@@ -12,33 +12,40 @@ class RateLimitTracker extends ChangeNotifier {
   Timer? _refreshTimer;
 
   RateLimitTracker() {
-    // Start periodic cleanup of old requests
-    _cleanupTimer = Timer.periodic(const Duration(seconds: 5), (_) {
+    // Cleanup old requests every 2 seconds for smoother countdown
+    _cleanupTimer = Timer.periodic(const Duration(seconds: 2), (_) {
       _cleanupOldRequests();
     });
 
-    // Update UI every second to show countdown
-    _refreshTimer = Timer.periodic(const Duration(seconds: 1), (_) {
+    // Update UI every 500ms for smooth countdown animation
+    _refreshTimer = Timer.periodic(const Duration(milliseconds: 500), (_) {
       notifyListeners();
     });
   }
 
-  /// Record a new API request
+  /// Record a new API request (with limit enforcement)
   void recordRequest() {
-    _requests.add(DateTime.now());
     _cleanupOldRequests();
+
+    // Don't allow recording if at limit
+    if (_requests.length >= maxRequestsPerMinute) {
+      debugPrint('⚠️ Rate limit reached - request blocked');
+      return;
+    }
+
+    _requests.add(DateTime.now());
     notifyListeners();
   }
 
   /// Get number of requests in the current window
   int get requestCount {
     _cleanupOldRequests();
-    return _requests.length;
+    return _requests.length.clamp(0, maxRequestsPerMinute);
   }
 
-  /// Get percentage of rate limit used (0.0 to 1.0)
+  /// Get percentage of rate limit used (0.0 to 1.0, capped at 1.0)
   double get usagePercentage {
-    return requestCount / maxRequestsPerMinute;
+    return (requestCount / maxRequestsPerMinute).clamp(0.0, 1.0);
   }
 
   /// Check if we should show the indicator (>75%)
@@ -56,9 +63,9 @@ class RateLimitTracker extends ChangeNotifier {
     return requestCount >= maxRequestsPerMinute;
   }
 
-  /// Get remaining requests before hitting limit
+  /// Get remaining requests before hitting limit (never negative)
   int get remainingRequests {
-    return maxRequestsPerMinute - requestCount;
+    return (maxRequestsPerMinute - requestCount).clamp(0, maxRequestsPerMinute);
   }
 
   /// Get time until oldest request expires (quota frees up)
@@ -75,25 +82,45 @@ class RateLimitTracker extends ChangeNotifier {
     return null;
   }
 
-  /// Get human-readable time until refresh
+  /// Get number of requests that will expire in the next 10 seconds
+  int get requestsExpiringNext10s {
+    if (_requests.isEmpty) return 0;
+
+    final now = DateTime.now();
+    final next10s = now.add(const Duration(seconds: 10));
+
+    return _requests.where((time) {
+      final expiryTime = time.add(windowDuration);
+      return expiryTime.isBefore(next10s) && expiryTime.isAfter(now);
+    }).length;
+  }
+
+  /// Get human-readable time until refresh with dynamic countdown
   String get refreshCountdown {
     final duration = timeUntilRefresh;
     if (duration == null) return '';
 
     final seconds = duration.inSeconds;
-    if (seconds <= 0) return 'Refreshing...';
+    if (seconds <= 0) {
+      return 'Freeing quota...';
+    }
 
-    return '${seconds}s until quota refresh';
+    final expiringCount = requestsExpiringNext10s;
+    if (expiringCount > 0 && seconds <= 10) {
+      return '${expiringCount} slot${expiringCount > 1 ? 's' : ''} free in ${seconds}s';
+    }
+
+    return 'Next slot in ${seconds}s';
   }
 
   /// Get human-readable status
   String get statusText {
     if (isAtLimit) {
-      return 'Rate limit reached!';
+      return 'At limit! ($requestCount/$maxRequestsPerMinute)';
     } else if (isApproachingLimit) {
-      return '$remainingRequests requests remaining';
+      return '$remainingRequests slots remaining';
     } else {
-      return '$requestCount / $maxRequestsPerMinute requests used';
+      return '$requestCount/$maxRequestsPerMinute used';
     }
   }
 
@@ -105,6 +132,9 @@ class RateLimitTracker extends ChangeNotifier {
 
     // Notify if requests were cleaned up (quota freed)
     if (_requests.length < oldCount) {
+      debugPrint(
+        '✅ Rate limit cleanup: ${oldCount - _requests.length} slots freed',
+      );
       notifyListeners();
     }
   }

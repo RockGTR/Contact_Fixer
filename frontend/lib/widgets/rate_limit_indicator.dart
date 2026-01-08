@@ -78,9 +78,9 @@ class RateLimitIndicator extends StatelessWidget {
                               Text(
                                 countdown,
                                 style: TextStyle(
-                                  color: color.withOpacity(0.8),
+                                  color: color.withOpacity(0.9),
                                   fontSize: 11,
-                                  fontWeight: FontWeight.w500,
+                                  fontWeight: FontWeight.w600,
                                 ),
                               ),
                             ],
@@ -89,13 +89,28 @@ class RateLimitIndicator extends StatelessWidget {
                       ],
                     ),
                   ),
-                  Text(
-                    '${(percentage * 100).toInt()}%',
-                    style: TextStyle(
-                      color: color,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
-                    ),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Text(
+                        '${(percentage * 100).toInt()}%',
+                        style: TextStyle(
+                          color: color,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 18,
+                        ),
+                      ),
+                      if (tracker.remainingRequests >= 0) ...[
+                        Text(
+                          '${tracker.remainingRequests} left',
+                          style: TextStyle(
+                            color: color.withOpacity(0.7),
+                            fontSize: 10,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ],
                   ),
                 ],
               ),
@@ -150,13 +165,13 @@ class RateLimitIndicator extends StatelessWidget {
                 ),
               ),
 
-              // Help text
+              // Help text with dynamic info
               if (isLimit || isWarning) ...[
                 const SizedBox(height: 8),
                 Text(
                   isLimit
-                      ? '⏸️ Requests paused - quota will refresh as requests expire'
-                      : '⚠️ Approaching limit - slow down to avoid errors',
+                      ? '🔒 At capacity - requests will auto-resume as slots free up'
+                      : '⚠️ High usage - quota refreshes on a rolling 60-second window',
                   style: TextStyle(
                     color: Colors.grey.shade700,
                     fontSize: 11,
