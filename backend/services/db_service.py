@@ -1,6 +1,8 @@
 import sqlite3
 import json
 import os
+import threading
+from contextlib import contextmanager
 from datetime import datetime
 from backend.core.security import FieldEncryption
 import logging
@@ -9,10 +11,25 @@ logger = logging.getLogger(__name__)
 
 DB_FILE = 'backend/contacts.db'
 
+# PERF: Thread-local storage for connection pooling
+_local = threading.local()
+
 def get_db_connection():
-    conn = sqlite3.connect(DB_FILE)
-    conn.row_factory = sqlite3.Row
-    return conn
+    """Get or create a thread-local database connection."""
+    if not hasattr(_local, 'conn') or _local.conn is None:
+        _local.conn = sqlite3.connect(DB_FILE, check_same_thread=False)
+        _local.conn.row_factory = sqlite3.Row
+    return _local.conn
+
+@contextmanager
+def get_db():
+    """Context manager for database operations with connection reuse."""
+    conn = get_db_connection()
+    try:
+        yield conn
+    except Exception:
+        conn.rollback()
+        raise
 
 def init_db():
     """Initialize database with encryption-ready schema."""
@@ -266,6 +283,25 @@ def is_contact_staged(resource_name: str, user_email: str) -> bool:
     ).fetchone()
     conn.close()
     return row is not None
+
+def get_all_staged_resource_names(user_email: str) -> set:
+    """
+    Get all staged resource names for a user as a set.
+    Used for O(1) lookup instead of N individual queries.
+    
+    Args:
+        user_email: Email of the authenticated user
+        
+    Returns:
+        Set of resource_name strings that are currently staged
+    """
+    conn = get_db_connection()
+    rows = conn.execute(
+        'SELECT resource_name FROM staged_changes WHERE user_email = ?',
+        (user_email,)
+    ).fetchall()
+    conn.close()
+    return {row['resource_name'] for row in rows}
 
 # Initialize on module load
 if not os.path.exists(DB_FILE):

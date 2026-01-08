@@ -7,6 +7,7 @@ from jose import jwt, JWTError
 from google.auth.transport import requests
 from google.oauth2 import id_token
 from cryptography.fernet import Fernet
+from cachetools import TTLCache
 from backend.core.config import config
 import logging
 
@@ -18,6 +19,10 @@ try:
 except Exception as e:
     logger.error(f"Failed to initialize encryption: {e}")
     raise ValueError("Invalid ENCRYPTION_KEY in configuration")
+
+# PERF: Token cache to avoid HTTP calls to Google on every request
+# Caches verified tokens for 5 minutes (300 seconds)
+_token_cache: TTLCache = TTLCache(maxsize=100, ttl=300)
 
 
 class GoogleTokenVerifier:
@@ -75,7 +80,12 @@ class GoogleTokenVerifier:
     
     @staticmethod
     def _verify_access_token(token: str) -> Optional[Dict[str, Any]]:
-        """Verify Google access token (web clients) using userinfo endpoint."""
+        """Verify Google access token (web clients) using userinfo endpoint with caching."""
+        # PERF: Check cache first to avoid HTTP call
+        if token in _token_cache:
+            logger.debug("Access token found in cache")
+            return _token_cache[token]
+        
         try:
             import requests as http_requests
             
@@ -92,13 +102,19 @@ class GoogleTokenVerifier:
             user_info = response.json()
             
             # Extract user details
-            return {
+            result = {
                 'email': user_info.get('email'),
                 'name': user_info.get('name'),
                 'sub': user_info.get('sub'),
                 'picture': user_info.get('picture'),
                 'email_verified': user_info.get('email_verified', False)
             }
+            
+            # PERF: Cache the verified token
+            _token_cache[token] = result
+            logger.debug(f"Access token cached for user: {result.get('email')}")
+            
+            return result
         except Exception as e:
             logger.debug(f"Access token verification error: {e}")
             return None
