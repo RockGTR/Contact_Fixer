@@ -86,7 +86,7 @@ def init_db():
         pass
         
     conn.commit()
-    conn.close()
+    # Note: Don't close - connection is pooled and reused
     logger.info("Database initialized successfully")
 
 def save_contacts(contacts_list, user_email: str):
@@ -132,7 +132,7 @@ def save_contacts(contacts_list, user_email: str):
         count += 1
         
     conn.commit()
-    conn.close()
+    # Connection pooled - no close needed
     logger.info(f"Saved {count} contacts for user {user_email}")
     return count
 
@@ -143,7 +143,7 @@ def get_all_contacts(user_email: str):
         'SELECT * FROM contacts WHERE user_email = ?', 
         (user_email,)
     ).fetchall()
-    conn.close()
+    # Connection pooled - no close needed
     
     # Decrypt sensitive fields
     decrypted_contacts = []
@@ -161,7 +161,7 @@ def find_contact_by_name(name: str):
     """Finds a contact by exact given name."""
     conn = get_db_connection()
     row = conn.execute('SELECT * FROM contacts WHERE given_name = ?', (name,)).fetchone()
-    conn.close()
+    # Connection pooled - no close needed
     if row:
         return dict(row)
     return None
@@ -173,7 +173,7 @@ def find_contact_by_resource_name(resource_name: str, user_email: str):
         'SELECT * FROM contacts WHERE resource_name = ? AND user_email = ?', 
         (resource_name, user_email)
     ).fetchone()
-    conn.close()
+    # Connection pooled - no close needed
     
     if row:
         contact = dict(row)
@@ -219,7 +219,7 @@ def stage_change(resource_name: str, contact_name: str, original_phone: str, new
         ''', (resource_name, user_email, contact_name, original_phone, new_phone, action, now, new_name))
         
     conn.commit()
-    conn.close()
+    # Connection pooled - no close needed
 
 def get_staged_changes(user_email: str):
     """Get all staged changes for a specific user."""
@@ -228,7 +228,7 @@ def get_staged_changes(user_email: str):
         'SELECT * FROM staged_changes WHERE user_email = ? ORDER BY created_at DESC',
         (user_email,)
     ).fetchall()
-    conn.close()
+    # Connection pooled - no close needed
     return [dict(row) for row in changes]
 
 def get_staged_changes_summary(user_email: str):
@@ -254,7 +254,7 @@ def get_staged_changes_summary(user_email: str):
             summary['rejects'] = count
         elif action == 'edit':
             summary['edits'] = count
-    conn.close()
+    # Connection pooled - no close needed
     return summary
 
 def remove_staged_change(resource_name: str, user_email: str):
@@ -265,14 +265,14 @@ def remove_staged_change(resource_name: str, user_email: str):
         (resource_name, user_email)
     )
     conn.commit()
-    conn.close()
+    # Connection pooled - no close needed
 
 def clear_all_staged_changes(user_email: str):
     """Clear all staged changes for a specific user."""
     conn = get_db_connection()
     conn.execute('DELETE FROM staged_changes WHERE user_email = ?', (user_email,))
     conn.commit()
-    conn.close()
+    # Connection pooled - no close needed
 
 def is_contact_staged(resource_name: str, user_email: str) -> bool:
     """Check if a contact is already staged for a user."""
@@ -281,7 +281,7 @@ def is_contact_staged(resource_name: str, user_email: str) -> bool:
         'SELECT 1 FROM staged_changes WHERE resource_name = ? AND user_email = ?', 
         (resource_name, user_email)
     ).fetchone()
-    conn.close()
+    # Connection pooled - no close needed
     return row is not None
 
 def get_all_staged_resource_names(user_email: str) -> set:
@@ -300,7 +300,7 @@ def get_all_staged_resource_names(user_email: str) -> set:
         'SELECT resource_name FROM staged_changes WHERE user_email = ?',
         (user_email,)
     ).fetchall()
-    conn.close()
+    # Connection pooled - no close needed
     return {row['resource_name'] for row in rows}
 
 # Initialize on module load
