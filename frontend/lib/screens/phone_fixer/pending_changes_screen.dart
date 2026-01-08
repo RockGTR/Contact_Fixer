@@ -205,6 +205,8 @@ class _PendingChangesScreenState extends State<PendingChangesScreen>
     setState(() => _isLoading = true);
     try {
       final idToken = await getIdToken(context);
+      if (!mounted) return;
+
       await _api.clearStaged(idToken);
       _loadPendingChanges();
       if (mounted) {
