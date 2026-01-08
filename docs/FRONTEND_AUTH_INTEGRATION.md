@@ -16,7 +16,10 @@ Frontend authentication integration is **fully complete**. All screens properly 
 
 ## ⚠️ Rate Limiting Considerations
 
-The backend enforces **60 requests per minute per user** for most endpoints. Always consider rate limits when implementing features that make multiple API calls.
+The backend enforces **100 edits per minute per user** for most endpoints. The app includes a visual indicator that appears after 75% usage, showing:
+- Real-time countdown to next available edit
+- Current usage percentage with color coding
+- Number of remaining edits
 
 ### ✅ Safe Operations (Single API Call)
 
@@ -66,27 +69,36 @@ ElevatedButton.icon(
 
 ### 🛡️ Best Practices for Rate Limiting
 
+The app now includes a **visual rate limit indicator** that:
+- Appears automatically when you've used >75% of your quota
+- Shows real-time countdown to next available edit
+- Color-codes urgency: Amber (75-80%) → Orange (80-99%) → Red (100%)
+- Updates every 500ms for smooth countdown animation
+
 When implementing new features:
 
 1. **Use bulk endpoints** whenever possible
 2. **Avoid loops** that make individual API calls
 3. **Batch operations** into single API requests
-4. **Check rate limits** in `backend/routers/contacts.py`:
+4. **Monitor the visual indicator** - it provides real-time feedback
+5. **Check rate limits** in `backend/routers/contacts.py`:
    ```python
-   @limiter.limit("60/minute")  # Default limit
-   @limiter.limit("10/minute")  # For sensitive operations
+   @limiter.limit("100/minute")  # Default limit (increased from 60)
+   @limiter.limit("10/minute")   # For sensitive operations
    ```
 
-5. **Handle rate limit errors gracefully**:
+6. **Handle rate limit errors gracefully**:
    ```dart
    try {
      await _api.someOperation(idToken);
    } catch (e) {
      if (e.toString().contains('429')) {
-       showSnackBar('Too many requests. Please wait a moment.');
+       showSnackBar('At capacity - please wait for edits to refresh');
      }
    }
    ```
+
+**Note**: The visual indicator provides proactive feedback, so users rarely hit actual 429 errors.
 
 ---
 

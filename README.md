@@ -1,19 +1,21 @@
-# Contact Fixer
+# **Contact Fixer** is a powerful Flutter mobile application designed to standardize and sync your Google Contacts phone numbers across different regions. Say goodbye to inconsistent phone number formats!
 
-A powerful, **security-hardened** utility app to fix, standardize, and format phone numbers in your Google Contacts. Features encryption, authentication, and enterprise-grade security for production use.
+## ✨ Features (v1.2.3)
 
-## 🔒 Security Features (v1.0+)
+### 🔐 Security & Authentication
+- **Google Sign-In**: Secure OAuth 2.0 authentication for mobile and web
+- **Field-Level Encryption**: AES-256 encryption for sensitive contact data at rest
+- **Multi-User Isolation**: Complete data separation between users
+- **JWT Token Verification**: Backend validates all requests with Google ID tokens
 
-- ✅ **Google ID Token Authentication** - Only authenticated users can access API
-- ✅ **Field-Level Encryption** - Sensitive data encrypted at rest (AES-256)
-- ✅ **Multi-User Support** - Complete data isolation between users
-- ✅ **Rate Limiting** - Protection against abuse
-- ✅ **Input Validation** - Strict validation on all inputs
-- ✅ **Security Headers** - CORS, XSS, clickjacking protection
-- ✅ **Audit Logging** - Security event tracking
+### 📊 Smart Rate Limiting
+- **Visual Progress Indicator**: Real-time animated bar showing API usage (100 edits/min)
+- **Rolling Window Countdown**: Live timer showing when next edit becomes available
+- **Color-Coded Warnings**: 🟡 Amber → 🟠 Orange → 🔴 Red as you approach limits
+- **Intelligent Throttling**: Only appears after 75% usage for cleaner UI
+- **Dynamic Feedback**: Shows exact count and "X edits free in Ys" messages
 
-## Features
-
+### 📱 Contact Management
 - **Smart Analysis**: Scans your contacts to identify numbers with missing country codes or incorrect formatting.
 - **Interactive "Phone Fixer"**:
   - **Swipe Interface**: Tinder-style card interface to quickly Accept (Right), Skip (Left), or Edit (Up) suggestions.

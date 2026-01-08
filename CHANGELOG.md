@@ -1,5 +1,44 @@
 # Contact Fixer - Change Log
 
+## Version 1.2.3 - Rate Limit Enhancements (2026-01-07)
+
+### ✨ New Features
+- **Visual Rate Limit Indicator**: Real-time animated progress bar showing API usage
+  - Only appears after 75% usage for cleaner UI
+  - Color-coded zones: 🟡 Amber (75-80%), 🟠 Orange (80-99%), 🔴 Red (100%)
+  - Shows both percentage and remaining edit count
+  - Live countdown to next available edit: "Next edit in 12s"
+  - Dynamic updates every 500ms for smooth countdown animation
+
+### 🔧 Improvements
+- **Increased Rate Limits**:
+  - Default: 60 → **100 edits/minute**
+  - `stage_fix`: 60 → **100/min** (batch operations)
+  - `list_contacts`: 30 → **50/min**
+  - `missing_extension`: 20 → **40/min**
+  - `pending_changes`: 20 → **40/min**
+  - `remove_staged`: 30 → **100/min**
+  
+- **Hard Limit Enforcement**: Prevents exceeding 100 edits (no more 105% errors)
+- **Rolling Window Visualization**: 
+  - Shows "3 edits free in 8s" when requests about to expire
+  - Count visibly decreases as 60-second window rolls
+  - Real-time feedback on quota refresh
+  
+- **Better Error Messages**:
+  - "At limit! (100/100)" instead of generic errors
+  - "🔒 At capacity - requests will auto-resume as edits free up"
+  - Clear explanation of rolling window behavior
+
+### 🎨 UI/UX
+- Compact badge in app bar when approaching limit
+- Gradient progress bar with pulse effect when near/at limit
+- Smooth animations (300-500ms transitions)
+- Clock icon for countdown timer
+- Changed terminology: "slots" → "edits" for clarity
+
+---
+
 ## Version 1.2.2 - Bug Fixes & Rate Limiting (2026-01-07)
 
 ### 🐛 Bug Fixes
