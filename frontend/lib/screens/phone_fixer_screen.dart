@@ -44,7 +44,27 @@ class _PhoneFixerScreenState extends State<PhoneFixerScreen>
 
   Map<String, dynamic> _pendingStats = {};
 
+  // PERF: Cache for filtered/sorted results
+  List<Map<String, dynamic>>? _cachedFilteredContacts;
+  String? _lastSearchQuery;
+  SortOption? _lastSortOption;
+  bool? _lastIsAscending;
+  int? _lastContactsLength;
+
+  // PERF: Pre-parsed dates map (resource_name -> DateTime)
+  final Map<String, DateTime?> _parsedDates = {};
+
   List<Map<String, dynamic>> get _filteredContacts {
+    // Check if cache is valid
+    if (_cachedFilteredContacts != null &&
+        _lastSearchQuery == _searchQuery &&
+        _lastSortOption == _sortOption &&
+        _lastIsAscending == _isAscending &&
+        _lastContactsLength == _contacts.length) {
+      return _cachedFilteredContacts!;
+    }
+
+    // Compute filtered list
     List<Map<String, dynamic>> result;
     if (_searchQuery.isEmpty) {
       result = List.from(_contacts);
@@ -57,6 +77,7 @@ class _PhoneFixerScreenState extends State<PhoneFixerScreen>
       }).toList();
     }
 
+    // Sort using pre-parsed dates
     result.sort((a, b) {
       int cmp;
       switch (_sortOption) {
@@ -67,12 +88,9 @@ class _PhoneFixerScreenState extends State<PhoneFixerScreen>
           cmp = (a['phone'] ?? '').toString().compareTo(b['phone'] ?? '');
           break;
         case SortOption.lastModified:
-          final dateA = a['updated_at'] != null
-              ? DateTime.tryParse(a['updated_at'])
-              : null;
-          final dateB = b['updated_at'] != null
-              ? DateTime.tryParse(b['updated_at'])
-              : null;
+          // PERF: Use pre-parsed dates instead of parsing in loop
+          final dateA = _parsedDates[a['resource_name']];
+          final dateB = _parsedDates[b['resource_name']];
           if (dateA == null && dateB == null) {
             cmp = 0;
           } else if (dateA == null) {
@@ -89,6 +107,14 @@ class _PhoneFixerScreenState extends State<PhoneFixerScreen>
       }
       return _isAscending ? cmp : -cmp;
     });
+
+    // Update cache
+    _cachedFilteredContacts = result;
+    _lastSearchQuery = _searchQuery;
+    _lastSortOption = _sortOption;
+    _lastIsAscending = _isAscending;
+    _lastContactsLength = _contacts.length;
+
     return result;
   }
 
@@ -129,6 +155,21 @@ class _PhoneFixerScreenState extends State<PhoneFixerScreen>
       );
       setState(() {
         _contacts = List<Map<String, dynamic>>.from(result['contacts'] ?? []);
+
+        // PERF: Pre-parse dates on load (O(n) once vs O(n log n) per sort)
+        _parsedDates.clear();
+        for (final contact in _contacts) {
+          final resourceName = contact['resource_name'] as String?;
+          final updatedAt = contact['updated_at'] as String?;
+          if (resourceName != null) {
+            _parsedDates[resourceName] = updatedAt != null
+                ? DateTime.tryParse(updatedAt)
+                : null;
+          }
+        }
+
+        // Invalidate filter cache
+        _cachedFilteredContacts = null;
         _isLoading = false;
       });
     } catch (e) {
@@ -164,6 +205,7 @@ class _PhoneFixerScreenState extends State<PhoneFixerScreen>
 
       setState(() {
         _contacts.remove(contact);
+        _cachedFilteredContacts = null; // PERF: Invalidate cache
         if (action == 'accept') {
           _acceptCount++;
         } else if (action == 'reject') {
@@ -293,10 +335,13 @@ class _PhoneFixerScreenState extends State<PhoneFixerScreen>
       final idToken = await getIdToken(context);
       if (!mounted) return;
 
+      // PERF: Get tracker reference once before loop
+      final tracker = Provider.of<RateLimitTracker>(context, listen: false);
+
       for (final contact in contactsToFix) {
         // Track each API call
         if (mounted) {
-          Provider.of<RateLimitTracker>(context, listen: false).recordRequest();
+          tracker.recordRequest();
         }
 
         await _api.stageFix(
