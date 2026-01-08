@@ -352,16 +352,16 @@ Authorization: Bearer <id_token>
 
 ## Rate Limiting
 
-**Default**: 60 requests/minute per user (configurable via `RATE_LIMIT_PER_MINUTE`)
+**Default**: 100 requests/minute per user (configurable via `RATE_LIMIT_PER_MINUTE`)
 
 **Per-Endpoint Limits**:
 - `/contacts/sync`: 5/min (expensive Google API call)
 - `/contacts/push_to_google`: 3/min (critical operation)
-- `/contacts/`: 30/min
-- `/contacts/missing_extension`: 20/min
-- `/contacts/stage_fix`: 60/min
-- `/contacts/pending_changes`: 20/min
-- `/contacts/staged/remove`: 30/min
+- `/contacts/`: 50/min
+- `/contacts/missing_extension`: 40/min
+- `/contacts/stage_fix`: 100/min (increased for batch operations)
+- `/contacts/pending_changes`: 40/min
+- `/contacts/staged/remove`: 100/min (increased for batch operations)
 - `/contacts/staged`: 10/min
 - `/contacts/analyze_regions`: 10/min
 

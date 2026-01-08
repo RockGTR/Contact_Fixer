@@ -20,7 +20,7 @@ class Config:
     CORS_ORIGINS: List[str] = os.getenv("CORS_ORIGINS", "http://localhost:3000").split(",")
     
     # Rate Limiting
-    RATE_LIMIT_PER_MINUTE: int = int(os.getenv("RATE_LIMIT_PER_MINUTE", "60"))
+    RATE_LIMIT_PER_MINUTE: int = int(os.getenv("RATE_LIMIT_PER_MINUTE", "100"))
     
     # Environment
     ENVIRONMENT: str = os.getenv("ENVIRONMENT", "development")

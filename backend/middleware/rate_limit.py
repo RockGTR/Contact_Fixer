@@ -28,7 +28,25 @@ limiter = Limiter(
 
 
 def rate_limit_handler(request, exc: RateLimitExceeded):
-    """Custom handler for rate limit exceeded."""
+    """Custom handler for rate limit exceeded with detailed error message."""
     identifier = get_user_identifier(request)
     security_logger.log_rate_limit(identifier, request.url.path)
-    return _rate_limit_exceeded_handler(request, exc)
+    
+    # Log detailed rate limit info
+    import logging
+    logger = logging.getLogger(__name__)
+    logger.warning(
+        f"Rate limit exceeded for {identifier} on {request.url.path}. "
+        f"Limit: {exc.detail if hasattr(exc, 'detail') else 'unknown'}"
+    )
+    
+    # Return more helpful error response
+    from fastapi.responses import JSONResponse
+    return JSONResponse(
+        status_code=429,
+        content={
+            "error": "Rate limit exceeded",
+            "detail": f"Too many requests. Please wait a moment before trying again.",
+            "retry_after": 60  # Suggest retry after 60 seconds
+        }
+    )

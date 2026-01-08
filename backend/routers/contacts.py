@@ -34,7 +34,7 @@ class StageFixRequest(BaseModel):
 # ============= ENDPOINTS WITH AUTHENTICATION =============
 
 @router.get("/")
-@limiter.limit("30/minute")
+@limiter.limit("50/minute")  # Increased for better UX
 async def list_contacts(request: Request):
     """Get all contacts for the authenticated user."""
     user_email = get_current_user_email(request)
@@ -59,7 +59,7 @@ async def sync_contacts(request: Request):
         )
 
 @router.get("/missing_extension")
-@limiter.limit("20/minute")
+@limiter.limit("40/minute")  # Increased for better UX
 async def get_missing_extension_contacts(request: Request, region: str = "US"):
     """Returns contacts that need phone number standardization."""
     user_email = get_current_user_email(request)
@@ -112,7 +112,7 @@ async def analyze_regions(request: Request):
 # ============= STAGING ENDPOINTS =============
 
 @router.post("/stage_fix")
-@limiter.limit("60/minute")
+@limiter.limit("100/minute")  # Increased for batch operations
 async def stage_fix(request: Request, fix_request: StageFixRequest):
     """
     Stage a contact fix for later pushing to Google.
@@ -138,14 +138,16 @@ async def stage_fix(request: Request, fix_request: StageFixRequest):
             "resource_name": fix_request.resource_name
         }
     except Exception as e:
+        error_msg = f"Failed to stage fix for {fix_request.contact_name}: {type(e).__name__}: {str(e)}"
+        logger.error(error_msg, exc_info=True)
         security_logger.log_invalid_input("/contacts/stage_fix", str(e))
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to stage fix"
+            detail=f"Failed to stage fix: {str(e)[:100]}"  # Include partial error message
         )
 
 @router.get("/pending_changes")
-@limiter.limit("20/minute")
+@limiter.limit("40/minute")  # Increased for frequent polling
 async def get_pending_changes(request: Request):
     """Get all staged changes and summary for the authenticated user."""
     user_email = get_current_user_email(request)
@@ -159,7 +161,7 @@ async def get_pending_changes(request: Request):
     }
 
 @router.delete("/staged/remove")
-@limiter.limit("30/minute")
+@limiter.limit("100/minute")  # Increased for batch operations
 async def remove_staged(request: Request, resource_name: str):
     """Remove a specific staged change."""
     user_email = get_current_user_email(request)
