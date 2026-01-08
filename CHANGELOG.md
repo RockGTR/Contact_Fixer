@@ -1,5 +1,30 @@
 # Contact Fixer - Change Log
 
+## Version 1.2.5 - Performance Optimizations (2026-01-08)
+
+### ⚡ Performance Improvements
+
+**Backend:**
+- **N+1 Query Fix**: Batch fetch staged contacts (501 → 2 queries for 500 contacts)
+- **Token Caching**: TTLCache (5 min) for access token verification (saves 100-300ms/request)
+- **Connection Pooling**: Thread-local SQLite connections (saves ~5-10ms/query)
+
+**Frontend:**
+- **RateLimitTracker**: Event-driven timers, Queue for O(1) removal
+- **Filter/Sort Caching**: Results cached until data/filter/sort changes
+- **Pre-parsed Dates**: O(n) on load instead of O(n log n) per sort
+- **Provider Optimization**: Single lookup before loops
+
+### 🔧 Bug Fixes
+- Fixed backend startup command (must run from project root with PYTHONPATH)
+- Fixed connection pooling conflict with conn.close() calls
+
+### 📝 Documentation
+- Updated backend startup instructions
+- Added performance troubleshooting section
+
+---
+
 ## Version 1.2.4 - Rate Limit Adjustment (2026-01-07)
 
 ### 🔧 Changes

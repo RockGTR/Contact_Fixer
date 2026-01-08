@@ -89,6 +89,48 @@ print('ID Token: ${token?.substring(0, 20)}...'); // Should print token prefix
 
 ---
 
+## 🖥️ Backend Issues
+
+### `ModuleNotFoundError: No module named 'backend'`
+
+**Symptom**: Backend fails to start with import error
+
+**Cause**: Running uvicorn from inside the `backend/` directory, but imports use absolute paths
+
+**Solution**: Run from the project root with PYTHONPATH:
+```bash
+cd /path/to/Contact_Fixer
+PYTHONPATH=. uvicorn backend.main:app --reload --host 0.0.0.0 --port 8000
+```
+
+### `500 Internal Server Error` After Performance Update
+
+**Symptom**: API endpoints return 500 errors after updating to v1.2.5
+
+**Cause**: Connection pooling conflict with old `conn.close()` calls
+
+**Solution**: Ensure you have the latest code:
+```bash
+git pull origin perf  # or main
+```
+
+### Backend Not Responding
+
+**Quick checks**:
+```bash
+# Verify backend is running
+curl http://localhost:8000/health
+
+# Check logs for errors
+# (visible in the terminal running uvicorn)
+
+# Restart backend
+pkill -f uvicorn
+PYTHONPATH=. uvicorn backend.main:app --reload --host 0.0.0.0 --port 8000
+```
+
+---
+
 ## Google Sign-In Issues
 
 ### Current Configuration (v1.0+)
