@@ -170,8 +170,8 @@ class RateLimitIndicator extends StatelessWidget {
                 const SizedBox(height: 8),
                 Text(
                   isLimit
-                      ? '🔒 At capacity - requests will auto-resume as slots free up'
-                      : '⚠️ High usage - quota refreshes on a rolling 60-second window',
+                      ? 'At capacity - requests will auto-resume as edits free up'
+                      : 'High usage - quota refreshes on a rolling 60-second window',
                   style: TextStyle(
                     color: Colors.grey.shade700,
                     fontSize: 11,

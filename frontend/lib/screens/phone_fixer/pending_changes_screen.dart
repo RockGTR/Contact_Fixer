@@ -127,7 +127,7 @@ class _PendingChangesScreenState extends State<PendingChangesScreen>
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              '✓ Pushed ${result['pushed']} contacts, ${result['skipped']} skipped',
+              'Pushed ${result['pushed']} contacts, ${result['skipped']} skipped',
             ),
             backgroundColor: const Color(0xFF10b981),
           ),

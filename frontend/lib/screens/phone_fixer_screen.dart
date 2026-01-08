@@ -179,34 +179,34 @@ class _PhoneFixerScreenState extends State<PhoneFixerScreen>
 
       if (errorStr.contains('429')) {
         // Rate limit error - provide clear guidance
-        errorMessage = '⏸️ At capacity! Wait for edits to refresh';
+        errorMessage = 'At capacity! Wait for edits to refresh';
         backgroundColor = Colors.orange;
         debugPrint(
           '⚠️ Rate limit hit while staging ${contact['name']}: $errorStr',
         );
       } else if (errorStr.contains('401') || errorStr.contains('403')) {
         // Authentication error
-        errorMessage = '🔒 Session expired - please sign in again';
+        errorMessage = 'Session expired - please sign in again';
         backgroundColor = Colors.red;
         debugPrint('🔐 Auth error while staging ${contact['name']}: $errorStr');
       } else if (errorStr.contains('network') ||
           errorStr.contains('SocketException')) {
         // Network error
-        errorMessage = '📡 Network error - check your connection';
+        errorMessage = 'Network error - check your connection';
         backgroundColor = Colors.grey.shade700;
         debugPrint(
           '🌐 Network error while staging ${contact['name']}: $errorStr',
         );
       } else if (errorStr.contains('timeout')) {
         // Timeout error
-        errorMessage = '⏱️ Request timed out - please try again';
+        errorMessage = 'Request timed out - please try again';
         backgroundColor = Colors.grey.shade700;
         debugPrint(
           '⏱️ Timeout error while staging ${contact['name']}: $errorStr',
         );
       } else {
         // Unknown error - still user-friendly but include some detail
-        errorMessage = '❌ Failed to stage ${contact['name']}';
+        errorMessage = 'Failed to stage ${contact['name']}';
         backgroundColor = Colors.red.shade700;
         debugPrint(
           '❌ Unexpected error while staging ${contact['name']}: $errorStr',
@@ -312,7 +312,7 @@ class _PhoneFixerScreenState extends State<PhoneFixerScreen>
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('✓ Accepted $count suggestions'),
+            content: Text('Accepted $count suggestions'),
             backgroundColor: const Color(0xFF10b981),
           ),
         );
