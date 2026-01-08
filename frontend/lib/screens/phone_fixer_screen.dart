@@ -220,15 +220,6 @@ class _PhoneFixerScreenState extends State<PhoneFixerScreen>
             content: Text(errorMessage),
             backgroundColor: backgroundColor,
             duration: const Duration(seconds: 3),
-            action: errorStr.contains('429')
-                ? SnackBarAction(
-                    label: 'View Limit',
-                    textColor: Colors.white,
-                    onPressed: () {
-                      // Scroll to rate limit indicator
-                    },
-                  )
-                : null,
           ),
         );
       }
