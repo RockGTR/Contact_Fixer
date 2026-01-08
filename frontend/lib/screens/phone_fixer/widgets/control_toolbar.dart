@@ -7,7 +7,7 @@ class ControlToolbar extends StatelessWidget {
   final bool isSwipeView;
   final VoidCallback onToggleView;
   final Function(dynamic) onSortSelected;
-  final VoidCallback onAcceptAll;
+  final VoidCallback? onAcceptAll; // Made optional - Accept All is disabled
   final int contactCount;
 
   const ControlToolbar({
@@ -17,7 +17,7 @@ class ControlToolbar extends StatelessWidget {
     required this.isSwipeView,
     required this.onToggleView,
     required this.onSortSelected,
-    required this.onAcceptAll,
+    this.onAcceptAll, // Optional parameter
     required this.contactCount,
   });
 
@@ -28,7 +28,10 @@ class ControlToolbar extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          // Accept All Button
+          // Accept All Button - DISABLED (Premium Feature - Coming Soon)
+          // Disabled due to rate limiting concerns (60 requests/minute)
+          // Future implementation will use batch API endpoint
+          /* 
           ElevatedButton.icon(
             onPressed: contactCount > 0 ? onAcceptAll : null,
             icon: const Icon(Icons.done_all, size: 18),
@@ -42,7 +45,7 @@ class ControlToolbar extends StatelessWidget {
               ),
             ),
           ),
-
+          */
           Row(
             children: [
               // Sort Menu
