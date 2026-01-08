@@ -219,7 +219,11 @@ class _PhoneFixerScreenState extends State<PhoneFixerScreen>
           SnackBar(
             content: Text(errorMessage),
             backgroundColor: backgroundColor,
-            duration: const Duration(seconds: 3),
+            duration: errorStr.contains('429')
+                ? const Duration(
+                    seconds: 2,
+                  ) // Shorter for rate limits since indicator is visible
+                : const Duration(seconds: 3),
           ),
         );
       }
