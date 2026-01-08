@@ -16,7 +16,7 @@ Frontend authentication integration is **fully complete**. All screens properly 
 
 ## ⚠️ Rate Limiting Considerations
 
-The backend enforces **100 edits per minute per user** for most endpoints. The app includes a visual indicator that appears after 75% usage, showing:
+The backend enforces **60 edits per minute per user** for most endpoints. The app includes a visual indicator that appears after 75% usage, showing:
 - Real-time countdown to next available edit
 - Current usage percentage with color coding
 - Number of remaining edits
@@ -84,8 +84,8 @@ When implementing new features:
 4. **Monitor the visual indicator** - it provides real-time feedback
 5. **Check rate limits** in `backend/routers/contacts.py`:
    ```python
-   @limiter.limit("100/minute")  # Default limit (increased from 60)
-   @limiter.limit("10/minute")   # For sensitive operations
+   @limiter.limit("60/minute")  # Default limit
+   @limiter.limit("10/minute")  # For sensitive operations
    ```
 
 6. **Handle rate limit errors gracefully**:

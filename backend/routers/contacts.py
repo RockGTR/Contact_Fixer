@@ -34,7 +34,7 @@ class StageFixRequest(BaseModel):
 # ============= ENDPOINTS WITH AUTHENTICATION =============
 
 @router.get("/")
-@limiter.limit("50/minute")  # Increased for better UX
+@limiter.limit("30/minute")
 async def list_contacts(request: Request):
     """Get all contacts for the authenticated user."""
     user_email = get_current_user_email(request)
@@ -59,7 +59,7 @@ async def sync_contacts(request: Request):
         )
 
 @router.get("/missing_extension")
-@limiter.limit("40/minute")  # Increased for better UX
+@limiter.limit("20/minute")
 async def get_missing_extension_contacts(request: Request, region: str = "US"):
     """Returns contacts that need phone number standardization."""
     user_email = get_current_user_email(request)
@@ -112,7 +112,7 @@ async def analyze_regions(request: Request):
 # ============= STAGING ENDPOINTS =============
 
 @router.post("/stage_fix")
-@limiter.limit("100/minute")  # Increased for batch operations
+@limiter.limit("60/minute")
 async def stage_fix(request: Request, fix_request: StageFixRequest):
     """
     Stage a contact fix for later pushing to Google.
@@ -147,7 +147,7 @@ async def stage_fix(request: Request, fix_request: StageFixRequest):
         )
 
 @router.get("/pending_changes")
-@limiter.limit("40/minute")  # Increased for frequent polling
+@limiter.limit("20/minute")
 async def get_pending_changes(request: Request):
     """Get all staged changes and summary for the authenticated user."""
     user_email = get_current_user_email(request)
@@ -161,7 +161,7 @@ async def get_pending_changes(request: Request):
     }
 
 @router.delete("/staged/remove")
-@limiter.limit("100/minute")  # Increased for batch operations
+@limiter.limit("30/minute")
 async def remove_staged(request: Request, resource_name: str):
     """Remove a specific staged change."""
     user_email = get_current_user_email(request)

@@ -4,7 +4,7 @@ import 'package:flutter/foundation.dart';
 /// Tracks API request rate to prevent hitting rate limits
 /// Limit: 100 requests per minute (rolling window)
 class RateLimitTracker extends ChangeNotifier {
-  static const int maxRequestsPerMinute = 100;
+  static const int maxRequestsPerMinute = 60;
   static const Duration windowDuration = Duration(minutes: 1);
 
   final List<DateTime> _requests = [];

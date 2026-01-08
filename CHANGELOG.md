@@ -1,5 +1,23 @@
 # Contact Fixer - Change Log
 
+## Version 1.2.4 - Rate Limit Adjustment (2026-01-07)
+
+### 🔧 Changes
+- **Reduced Rate Limits** (optimized for stability):
+  - Default: 100 → **60 edits/minute**
+  - `stage_fix`: 100 → **60/min**
+  - `list_contacts`: 50 → **30/min**
+  - `missing_extension`: 40 → **20/min**
+  - `pending_changes`: 40 → **20/min**
+  - `remove_staged`: 100 → **30/min**
+
+### 🎨 UI/UX
+- Visual indicator now triggers at 45/60 edits (75% threshold)
+- Faster countdown refresh for better UX at lower limits
+- Error notifications dismiss after 2 seconds
+
+---
+
 ## Version 1.2.3 - Rate Limit Enhancements (2026-01-07)
 
 ### ✨ New Features

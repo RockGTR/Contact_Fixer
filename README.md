@@ -9,7 +9,7 @@
 - **JWT Token Verification**: Backend validates all requests with Google ID tokens
 
 ### 📊 Smart Rate Limiting
-- **Visual Progress Indicator**: Real-time animated bar showing API usage (100 edits/min)
+- **Visual Progress Indicator**: Real-time animated bar showing API usage (60 edits/min)
 - **Rolling Window Countdown**: Live timer showing when next edit becomes available
 - **Color-Coded Warnings**: 🟡 Amber → 🟠 Orange → 🔴 Red as you approach limits
 - **Intelligent Throttling**: Only appears after 75% usage for cleaner UI
