@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_card_swiper/flutter_card_swiper.dart';
+import 'package:provider/provider.dart';
 
 import '../services/api_service.dart';
+import '../services/rate_limit_tracker.dart';
 import '../mixins/auth_token_mixin.dart';
+import '../widgets/rate_limit_indicator.dart';
 import 'phone_fixer/pending_changes_screen.dart';
 import 'phone_fixer/utils/phone_fixer_utils.dart';
 import 'phone_fixer/widgets/control_toolbar.dart';
@@ -98,6 +101,9 @@ class _PhoneFixerScreenState extends State<PhoneFixerScreen>
 
   Future<void> _loadPendingStats() async {
     try {
+      // Track API call
+      Provider.of<RateLimitTracker>(context, listen: false).recordRequest();
+
       final idToken = await getIdToken(context);
       final result = await _api.getPendingChanges(idToken);
       if (mounted) {
@@ -137,6 +143,9 @@ class _PhoneFixerScreenState extends State<PhoneFixerScreen>
     String? newName,
   }) async {
     try {
+      // Track API call
+      Provider.of<RateLimitTracker>(context, listen: false).recordRequest();
+
       final idToken = await getIdToken(context);
       await _api.stageFix(
         idToken: idToken,
@@ -229,6 +238,11 @@ class _PhoneFixerScreenState extends State<PhoneFixerScreen>
       if (!mounted) return;
 
       for (final contact in contactsToFix) {
+        // Track each API call
+        if (mounted) {
+          Provider.of<RateLimitTracker>(context, listen: false).recordRequest();
+        }
+
         await _api.stageFix(
           idToken: idToken,
           resourceName: contact['resource_name'],
@@ -343,36 +357,45 @@ class _PhoneFixerScreenState extends State<PhoneFixerScreen>
               )
             : const Text(
                 'Phone Fixer',
-                style: TextStyle(fontWeight: FontWeight.bold),
+                style: TextStyle(fontWeight: FontWeight.w600),
               ),
         actions: [
-          IconButton(
-            icon: Icon(_isSearching ? Icons.close : Icons.search),
-            onPressed: () {
-              setState(() {
-                if (_isSearching) {
-                  _isSearching = false;
-                  _searchQuery = '';
-                  _searchController.clear();
-                } else {
+          const RateLimitBadge(), // Show badge when approaching limit
+          if (!_isSearching)
+            IconButton(
+              icon: const Icon(Icons.search),
+              onPressed: () {
+                setState(() {
                   _isSearching = true;
-                }
+                });
+              },
+            ),
+          IconButton(
+            icon: Badge(
+              label: Text('${_acceptCount + _rejectCount + _editCount}'),
+              isLabelVisible: (_acceptCount + _rejectCount + _editCount) > 0,
+              child: const Icon(Icons.playlist_add_check),
+            ),
+            tooltip: 'View pending changes',
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) =>
+                      PendingChangesScreen(regionCode: widget.regionCode),
+                ),
+              ).then((_) {
+                _loadContacts();
+                _loadPendingStats();
               });
             },
           ),
-          if (!_isSearching && displayCount > 0)
-            TextButton.icon(
-              onPressed: _navigateToPendingChanges,
-              icon: const Icon(Icons.pending_actions, color: Colors.white),
-              label: Text(
-                '$displayCount',
-                style: const TextStyle(color: Colors.white),
-              ),
-            ),
         ],
       ),
       body: Column(
         children: [
+          // Rate limit indicator at the top
+          const RateLimitIndicator(),
           ControlToolbar(
             sortOption: _sortOption,
             isAscending: _isAscending,

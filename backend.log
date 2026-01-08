@@ -2,3 +2,5 @@ INFO:     Will watch for changes in these directories: ['/Users/rockgtr/Desktop/
 ERROR:    [Errno 48] Address already in use
 INFO:     Will watch for changes in these directories: ['/Users/rockgtr/Desktop/Personal/Contact_Fixer']
 ERROR:    [Errno 48] Address already in use
+INFO:     Will watch for changes in these directories: ['/Users/rockgtr/Desktop/Personal/Contact_Fixer']
+ERROR:    [Errno 48] Address already in use

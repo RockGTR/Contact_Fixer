@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'providers/auth_provider.dart';
 import 'providers/contacts_provider.dart';
 import 'providers/settings_provider.dart';
+import 'services/rate_limit_tracker.dart';
 import 'screens/login_screen.dart';
 import 'screens/home_screen.dart';
 
@@ -10,6 +11,7 @@ void main() {
   runApp(
     MultiProvider(
       providers: [
+        ChangeNotifierProvider(create: (context) => RateLimitTracker()),
         ChangeNotifierProvider(
           create: (context) {
             final auth = AuthProvider();
