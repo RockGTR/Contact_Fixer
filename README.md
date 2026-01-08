@@ -167,6 +167,7 @@ flutter run
 ## 📖 Documentation
 
 - **[🚀 Setup Guide](docs/SETUP_GUIDE.md)** - Quick start & single-file configuration
+- **[🏭 Production Deployment](docs/PRODUCTION_DEPLOYMENT.md)** - Complete production deployment guide
 - **[Architecture](docs/ARCHITECTURE.md)** - System design and data flow
 - **[API Reference](docs/API_REFERENCE.md)** - Backend API endpoints
 - **[Security Best Practices](docs/SECURITY.md)** - Production deployment security
