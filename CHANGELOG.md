@@ -1,5 +1,23 @@
 # Contact Fixer - Change Log
 
+## Version 1.2.2 - Bug Fixes & Rate Limiting (2026-01-07)
+
+### 🐛 Bug Fixes
+- **Missing Stub File**: Added `web_id_token_provider_stub.dart` for mobile builds
+- **Accept All Disabled**: Removed Accept All button to prevent rate limiting issues
+
+### 📚 Documentation Updates
+- **Frontend Auth Guide**: Completely rewrote with rate limiting best practices
+- **Rate Limit Safety**: Documented safe vs unsafe operations
+- **Bulk Operations**: Explained which endpoints use single API calls vs loops
+
+### 🛡️ Rate Limiting
+- Accept All feature was making 100+ individual API calls, exceeding 60/minute limit
+- Feature disabled and marked as premium for future batch API implementation
+- Delete All is safe - uses single bulk endpoint with 10/minute limit
+
+---
+
 ## Version 1.2.1 - Production Deployment Prep (2026-01-07)
 
 ### 🧹 Code Quality
