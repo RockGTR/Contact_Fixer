@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_card_swiper/flutter_card_swiper.dart';
-import 'package:provider/provider.dart';
 
 import '../services/api_service.dart';
-import '../providers/auth_provider.dart';
 import '../mixins/auth_token_mixin.dart';
 import 'phone_fixer/pending_changes_screen.dart';
 import 'phone_fixer/utils/phone_fixer_utils.dart';
@@ -152,12 +150,13 @@ class _PhoneFixerScreenState extends State<PhoneFixerScreen>
 
       setState(() {
         _contacts.remove(contact);
-        if (action == 'accept')
+        if (action == 'accept') {
           _acceptCount++;
-        else if (action == 'reject')
+        } else if (action == 'reject') {
           _rejectCount++;
-        else if (action == 'edit')
+        } else if (action == 'edit') {
           _editCount++;
+        }
 
         final currentTotal = _pendingStats['total'] ?? 0;
         _pendingStats['total'] = currentTotal + 1;
@@ -227,6 +226,8 @@ class _PhoneFixerScreenState extends State<PhoneFixerScreen>
 
     try {
       final idToken = await getIdToken(context);
+      if (!mounted) return;
+
       for (final contact in contactsToFix) {
         await _api.stageFix(
           idToken: idToken,

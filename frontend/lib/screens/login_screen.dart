@@ -140,8 +140,9 @@ class LoginScreen extends StatelessWidget {
                   // Error message
                   Consumer<AuthProvider>(
                     builder: (context, auth, _) {
-                      if (auth.errorMessage == null)
+                      if (auth.errorMessage == null) {
                         return const SizedBox.shrink();
+                      }
                       return Padding(
                         padding: const EdgeInsets.only(top: 24),
                         child: Container(

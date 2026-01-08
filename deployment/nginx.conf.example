@@ -1,0 +1,102 @@
+# ============================================================
+# Contact Fixer - Nginx Reverse Proxy Configuration
+# ============================================================
+# Production-ready Nginx config with security headers
+# Location: /etc/nginx/sites-available/contact-fixer
+# ============================================================
+
+# Redirect HTTP to HTTPS
+server {
+    listen 80;
+    listen [::]:80;
+    server_name yourdomain.com www.yourdomain.com;
+
+    # Let's Encrypt verification
+    location /.well-known/acme-challenge/ {
+        root /var/www/html;
+    }
+
+    # Redirect all HTTP to HTTPS
+    location / {
+        return 301 https://$server_name$request_uri;
+    }
+}
+
+# HTTPS Server
+server {
+    listen 443 ssl http2;
+    listen [::]:443 ssl http2;
+    server_name yourdomain.com www.yourdomain.com;
+
+    # SSL Configuration (managed by Certbot)
+    ssl_certificate /etc/letsencrypt/live/yourdomain.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/yourdomain.com/privkey.pem;
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_ciphers HIGH:!aNULL:!MD5;
+    ssl_prefer_server_ciphers on;
+
+    # Security Headers
+    add_header Strict-Transport-Security "max-age=31536000; includeSubDomains; preload" always;
+    add_header X-Frame-Options "DENY" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header X-XSS-Protection "1; mode=block" always;
+    add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+    add_header Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https://accounts.google.com https://www.googleapis.com;" always;
+
+    # Logging
+    access_log /var/log/nginx/contact-fixer-access.log;
+    error_log /var/log/nginx/contact-fixer-error.log;
+
+    # Rate Limiting
+    limit_req_zone $binary_remote_addr zone=api_limit:10m rate=10r/s;
+    limit_req zone=api_limit burst=20 nodelay;
+
+    # Proxy to FastAPI Backend
+    location / {
+        proxy_pass http://127.0.0.1:8000;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+
+        # Timeout settings
+        proxy_connect_timeout 60s;
+        proxy_send_timeout 60s;
+        proxy_read_timeout 60s;
+
+        # CORS headers (if needed - FastAPI handles this)
+        # Uncomment if you need Nginx to handle CORS
+        # add_header Access-Control-Allow-Origin "https://yourdomain.com" always;
+        # add_header Access-Control-Allow-Methods "GET, POST, DELETE, OPTIONS" always;
+        # add_header Access-Control-Allow-Headers "Authorization, Content-Type" always;
+    }
+
+    # Health check endpoint (optional, useful for monitoring)
+    location /health {
+        proxy_pass http://127.0.0.1:8000/health;
+        access_log off;  # Don't log health checks
+    }
+
+    # API Documentation (consider disabling in production)
+    location /docs {
+        # Uncomment to disable docs in production
+        # return 404;
+        proxy_pass http://127.0.0.1:8000/docs;
+    }
+
+    # Static files (if serving web app through Nginx)
+    # location /static/ {
+    #     alias /opt/contact-fixer/frontend/build/web/;
+    #     expires 1y;
+    #     add_header Cache-Control "public, immutable";
+    # }
+
+    # Gzip compression
+    gzip on;
+    gzip_vary on;
+    gzip_min_length 1024;
+    gzip_types text/plain text/css text/xml text/javascript application/x-javascript application/xml+rss application/json;
+
+    # Max upload size
+    client_max_body_size 10M;
+}

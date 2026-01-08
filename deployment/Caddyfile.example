@@ -1,0 +1,76 @@
+# ============================================================
+# Contact Fixer - Caddy Reverse Proxy Configuration
+# ============================================================
+# Production-ready Caddy config (simpler than Nginx)
+# Location: /etc/caddy/Caddyfile
+# Caddy automatically handles HTTPS with Let's Encrypt!
+# ============================================================
+
+yourdomain.com, www.yourdomain.com {
+    # Automatic HTTPS - Caddy handles certificates automatically!
+    
+    # Security Headers
+    header {
+        Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+        X-Frame-Options "DENY"
+        X-Content-Type-Options "nosniff"
+        X-XSS-Protection "1; mode=block"
+        Referrer-Policy "strict-origin-when-cross-origin"
+        Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https://accounts.google.com https://www.googleapis.com;"
+        
+        # Remove sensitive headers
+        -Server
+        -X-Powered-By
+    }
+
+    # Logging
+    log {
+        output file /var/log/caddy/contact-fixer-access.log
+        format json
+    }
+
+    # Rate Limiting (using Caddy rate limit module)
+    # Install: caddy add-package github.com/mholt/caddy-ratelimit
+    # route {
+    #     rate_limit {
+    #         zone api {
+    #             key {remote_host}
+    #             events 100
+    #             window 1m
+    #         }
+    #     }
+    # }
+
+    #Reverse Proxy to FastAPI Backend
+    reverse_proxy localhost:8000 {
+        # Health check
+        health_uri /health
+        health_interval 30s
+        health_timeout 5s
+        
+        # Headers
+        header_up Host {host}
+        header_up X-Real-IP {remote_host}
+        header_up X-Forwarded-For {remote_host}
+        header_up X-Forwarded-Proto {scheme}
+        
+        # Timeouts
+        transport http {
+            dial_timeout 30s
+            response_header_timeout 60s
+        }
+    }
+
+    # Gzip compression
+    encode gzip
+
+    # Max upload size (10MB)
+    request_body {
+        max_size 10MB
+    }
+}
+
+# Alternative: Multiple domains
+# api.yourdomain.com {
+#     reverse_proxy localhost:8000
+# }
