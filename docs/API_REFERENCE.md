@@ -64,6 +64,38 @@ Configured via `CORS_ORIGINS` environment variable.
 ### GET `/auth/login`
 **Public endpoint** - Triggers backend OAuth flow (opens browser for server authentication).
 
+**Response**:
+```json
+{
+  "status": "success",
+  "message": "Authenticated successfully. You can close this window."
+}
+```
+
+### POST `/auth/exchange_token`
+**Public endpoint** - Exchange a Google Access Token (Web) for user information to establish a session.
+
+**Rate Limit**: 60 requests/minute (default)
+
+**Headers**:
+None (Public)
+
+**Request Body**:
+```json
+{
+  "access_token": "ya29.a0..."
+}
+```
+
+**Response**:
+```json
+{
+  "id_token": "ya29.a0...",
+  "email": "user@example.com",
+  "name": "John Doe"
+}
+```
+
 ---
 
 ## Contact Endpoints
