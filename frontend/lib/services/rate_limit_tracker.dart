@@ -1,31 +1,34 @@
 import 'dart:async';
+import 'dart:collection';
 import 'package:flutter/foundation.dart';
 
-/// Tracks API request rate to prevent hitting rate limits
-/// Limit: 100 requests per minute (rolling window)
+/// Optimized rate limit tracker using event-driven timers
+///
+/// Performance improvements over original:
+/// - Uses Queue for O(1) removal from front
+/// - Event-driven expiry timer (only fires when requests expire)
+/// - Lazy UI refresh timer (only runs when indicator is visible)
+/// - Eliminates ~150 timer fires/minute when idle
 class RateLimitTracker extends ChangeNotifier {
   static const int maxRequestsPerMinute = 60;
   static const Duration windowDuration = Duration(minutes: 1);
 
-  final List<DateTime> _requests = [];
-  Timer? _cleanupTimer;
-  Timer? _refreshTimer;
+  // Use a Queue for O(1) removal from front (requests are always chronological)
+  final Queue<DateTime> _requests = Queue();
 
-  RateLimitTracker() {
-    // Cleanup old requests every 2 seconds for smoother countdown
-    _cleanupTimer = Timer.periodic(const Duration(seconds: 2), (_) {
-      _cleanupOldRequests();
-    });
+  // Event-driven timer that fires exactly when oldest request expires
+  Timer? _expiryTimer;
 
-    // Update UI every 500ms for smooth countdown animation
-    _refreshTimer = Timer.periodic(const Duration(milliseconds: 500), (_) {
-      notifyListeners();
-    });
-  }
+  // UI refresh timer - only active when indicator should be visible
+  Timer? _uiRefreshTimer;
+
+  // Track if UI timer is running to avoid redundant starts
+  bool _uiTimerActive = false;
 
   /// Record a new API request (with limit enforcement)
   void recordRequest() {
-    _cleanupOldRequests();
+    // Cleanup any expired requests first
+    _cleanupExpired();
 
     // Don't allow recording if at limit
     if (_requests.length >= maxRequestsPerMinute) {
@@ -34,14 +37,82 @@ class RateLimitTracker extends ChangeNotifier {
     }
 
     _requests.add(DateTime.now());
+    _scheduleNextExpiry();
+    _updateUiTimer();
     notifyListeners();
   }
 
-  /// Get number of requests in the current window
-  int get requestCount {
-    _cleanupOldRequests();
-    return _requests.length.clamp(0, maxRequestsPerMinute);
+  /// Schedule timer for exactly when the oldest request expires
+  void _scheduleNextExpiry() {
+    _expiryTimer?.cancel();
+
+    if (_requests.isEmpty) return;
+
+    final oldestRequest = _requests.first;
+    final expiryTime = oldestRequest.add(windowDuration);
+    final delay = expiryTime.difference(DateTime.now());
+
+    if (delay.isNegative || delay == Duration.zero) {
+      // Already expired, clean up immediately
+      _cleanupExpired();
+      // Reschedule for next oldest if any remain
+      if (_requests.isNotEmpty) {
+        _scheduleNextExpiry();
+      }
+    } else {
+      // Schedule cleanup for exact expiry time (+100ms buffer for precision)
+      _expiryTimer = Timer(delay + const Duration(milliseconds: 100), () {
+        _cleanupExpired();
+        _scheduleNextExpiry(); // Schedule next expiry
+        _updateUiTimer();
+      });
+    }
   }
+
+  /// Start or stop UI refresh timer based on whether indicator should be visible
+  void _updateUiTimer() {
+    final shouldRun = shouldShowIndicator;
+
+    if (shouldRun && !_uiTimerActive) {
+      // Start the UI timer for smooth countdown animations
+      _uiRefreshTimer = Timer.periodic(const Duration(milliseconds: 500), (_) {
+        notifyListeners();
+        // Auto-stop when no longer needed
+        if (!shouldShowIndicator) {
+          _stopUiTimer();
+        }
+      });
+      _uiTimerActive = true;
+    } else if (!shouldRun && _uiTimerActive) {
+      _stopUiTimer();
+    }
+  }
+
+  void _stopUiTimer() {
+    _uiRefreshTimer?.cancel();
+    _uiRefreshTimer = null;
+    _uiTimerActive = false;
+  }
+
+  /// Remove only expired requests from front of queue - O(k) where k = expired count
+  void _cleanupExpired() {
+    final cutoff = DateTime.now().subtract(windowDuration);
+    int freed = 0;
+
+    // O(k) where k = number of expired items (usually 1-2 at a time)
+    while (_requests.isNotEmpty && _requests.first.isBefore(cutoff)) {
+      _requests.removeFirst();
+      freed++;
+    }
+
+    if (freed > 0) {
+      debugPrint('✅ Rate limit cleanup: $freed edits freed');
+      notifyListeners();
+    }
+  }
+
+  /// Get number of requests in the current window
+  int get requestCount => _requests.length.clamp(0, maxRequestsPerMinute);
 
   /// Get percentage of rate limit used (0.0 to 1.0, capped at 1.0)
   double get usagePercentage {
@@ -107,7 +178,7 @@ class RateLimitTracker extends ChangeNotifier {
 
     final expiringCount = requestsExpiringNext10s;
     if (expiringCount > 0 && seconds <= 10) {
-      return '${expiringCount} edit${expiringCount > 1 ? 's' : ''} free in ${seconds}s';
+      return '$expiringCount edit${expiringCount > 1 ? 's' : ''} free in ${seconds}s';
     }
 
     return 'Next edit in ${seconds}s';
@@ -124,31 +195,19 @@ class RateLimitTracker extends ChangeNotifier {
     }
   }
 
-  /// Remove requests older than 1 minute
-  void _cleanupOldRequests() {
-    final cutoff = DateTime.now().subtract(windowDuration);
-    final oldCount = _requests.length;
-    _requests.removeWhere((time) => time.isBefore(cutoff));
-
-    // Notify if requests were cleaned up (quota freed)
-    if (_requests.length < oldCount) {
-      debugPrint(
-        '✅ Rate limit cleanup: ${oldCount - _requests.length} edits freed',
-      );
-      notifyListeners();
-    }
-  }
-
   /// Reset the tracker (for testing)
   void reset() {
     _requests.clear();
+    _expiryTimer?.cancel();
+    _expiryTimer = null;
+    _stopUiTimer();
     notifyListeners();
   }
 
   @override
   void dispose() {
-    _cleanupTimer?.cancel();
-    _refreshTimer?.cancel();
+    _expiryTimer?.cancel();
+    _stopUiTimer();
     super.dispose();
   }
 }
