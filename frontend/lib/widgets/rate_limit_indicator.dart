@@ -15,16 +15,16 @@ class RateLimitIndicator extends StatelessWidget {
         if (!tracker.shouldShowIndicator) {
           return const SizedBox.shrink();
         }
-        
+
         final percentage = tracker.usagePercentage;
         final isWarning = tracker.isApproachingLimit;
         final isLimit = tracker.isAtLimit;
         final countdown = tracker.refreshCountdown;
-        
+
         // Color based on usage
         Color color;
         IconData icon;
-        
+
         if (isLimit) {
           color = Colors.red;
           icon = Icons.error;
@@ -35,7 +35,7 @@ class RateLimitIndicator extends StatelessWidget {
           color = Colors.amber;
           icon = Icons.info;
         }
-        
+
         return AnimatedContainer(
           duration: const Duration(milliseconds: 300),
           margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -43,10 +43,7 @@ class RateLimitIndicator extends StatelessWidget {
           decoration: BoxDecoration(
             color: color.withOpacity(0.1),
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: color.withOpacity(0.3),
-              width: 1,
-            ),
+            border: Border.all(color: color.withOpacity(0.3), width: 1),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -103,7 +100,7 @@ class RateLimitIndicator extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 10),
-              
+
               // Animated progress bar with gradient
               ClipRRect(
                 borderRadius: BorderRadius.circular(4),
@@ -132,8 +129,8 @@ class RateLimitIndicator extends StatelessWidget {
                               colors: isLimit
                                   ? [Colors.red.shade700, Colors.red]
                                   : isWarning
-                                      ? [Colors.orange.shade700, Colors.orange]
-                                      : [Colors.amber.shade700, Colors.amber],
+                                  ? [Colors.orange.shade700, Colors.orange]
+                                  : [Colors.amber.shade700, Colors.amber],
                             ),
                             borderRadius: BorderRadius.circular(4),
                             boxShadow: isLimit || isWarning
@@ -152,7 +149,7 @@ class RateLimitIndicator extends StatelessWidget {
                   },
                 ),
               ),
-              
+
               // Help text
               if (isLimit || isWarning) ...[
                 const SizedBox(height: 8),
@@ -184,27 +181,48 @@ class RateLimitBadge extends StatelessWidget {
   Widget build(BuildContext context) {
     return Consumer<RateLimitTracker>(
       builder: (context, tracker, _) {
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: color, width: 1),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                isLimit ? Icons.error : Icons.warning_amber,
-                color: color,
-                size: 16,
-              ),
-              const SizedBox(width: 4),
-              Text(
-                '${tracker.remainingRequests}',
-                style: TextStyle(
+        // Only show after 75% usage
+        if (!tracker.shouldShowIndicator) {
+          return const SizedBox.shrink();
+        }
+
+        final isWarning = tracker.isApproachingLimit;
+        final isLimit = tracker.isAtLimit;
+
+        Color color = isLimit
+            ? Colors.red
+            : (isWarning ? Colors.orange : Colors.amber);
+
+        return AnimatedOpacity(
+          duration: const Duration(milliseconds: 300),
+          opacity: 1.0,
+          child: Container(
+            margin: const EdgeInsets.only(right: 8),
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.15),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: color, width: 1),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  isLimit ? Icons.error : Icons.warning_amber,
                   color: color,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 12,
+                  size: 16,
                 ),
-              ),
-            ],
+                const SizedBox(width: 4),
+                Text(
+                  '${tracker.remainingRequests}',
+                  style: TextStyle(
+                    color: color,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 12,
+                  ),
+                ),
+              ],
+            ),
           ),
         );
       },
