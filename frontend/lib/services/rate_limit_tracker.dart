@@ -107,10 +107,10 @@ class RateLimitTracker extends ChangeNotifier {
 
     final expiringCount = requestsExpiringNext10s;
     if (expiringCount > 0 && seconds <= 10) {
-      return '${expiringCount} slot${expiringCount > 1 ? 's' : ''} free in ${seconds}s';
+      return '${expiringCount} edit${expiringCount > 1 ? 's' : ''} free in ${seconds}s';
     }
 
-    return 'Next slot in ${seconds}s';
+    return 'Next edit in ${seconds}s';
   }
 
   /// Get human-readable status
@@ -118,7 +118,7 @@ class RateLimitTracker extends ChangeNotifier {
     if (isAtLimit) {
       return 'At limit! ($requestCount/$maxRequestsPerMinute)';
     } else if (isApproachingLimit) {
-      return '$remainingRequests slots remaining';
+      return '$remainingRequests edits remaining';
     } else {
       return '$requestCount/$maxRequestsPerMinute used';
     }
@@ -133,7 +133,7 @@ class RateLimitTracker extends ChangeNotifier {
     // Notify if requests were cleaned up (quota freed)
     if (_requests.length < oldCount) {
       debugPrint(
-        '✅ Rate limit cleanup: ${oldCount - _requests.length} slots freed',
+        '✅ Rate limit cleanup: ${oldCount - _requests.length} edits freed',
       );
       notifyListeners();
     }
