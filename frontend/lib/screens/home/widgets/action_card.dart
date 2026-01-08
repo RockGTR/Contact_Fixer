@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../../../widgets/neumorphic_container.dart';
+import '../../../widgets/neumorphic_button.dart';
 
 class ActionCard extends StatelessWidget {
   final IconData icon;
@@ -24,78 +26,67 @@ class ActionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.04),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: onTap,
+    if (onTap != null) {
+      return NeumorphicButton(
+        onTap: onTap!,
+        padding: const EdgeInsets.all(24),
+        borderRadius: BorderRadius.circular(32),
+        child: _buildContent(context),
+      );
+    }
+
+    return NeumorphicContainer(
+      padding: const EdgeInsets.all(24),
+      borderRadius: BorderRadius.circular(32),
+      child: _buildContent(context),
+    );
+  }
+
+  Widget _buildContent(BuildContext context) {
+    return Row(
+      children: [
+        // Inset Well for Icon
+        NeumorphicContainer(
+          width: 56,
+          height: 56,
           borderRadius: BorderRadius.circular(16),
-          child: Padding(
-            padding: const EdgeInsets.all(20),
-            child: Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: iconBgColor,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: isLoading
-                      ? SizedBox(
-                          width: 24,
-                          height: 24,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2.5,
-                            color: iconColor,
-                          ),
-                        )
-                      : Icon(icon, color: iconColor, size: 24),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        title,
-                        style: const TextStyle(
-                          fontSize: 17,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        subtitle,
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Colors.grey.shade600,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                if (trailing != null) trailing!,
-                if (trailing == null)
-                  Icon(
-                    Icons.chevron_right_rounded,
-                    color: Colors.grey.shade400,
-                  ),
-              ],
-            ),
+          isPressed: true, // Inset look
+          child: Center(
+            child: isLoading
+                ? SizedBox(
+                    width: 24,
+                    height: 24,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2.5,
+                      color: iconColor,
+                    ),
+                  )
+                : Icon(icon, color: iconColor, size: 28),
           ),
         ),
-      ),
+        const SizedBox(width: 20),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(title, style: Theme.of(context).textTheme.titleLarge),
+              const SizedBox(height: 4),
+              Text(
+                subtitle,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: Theme.of(context).colorScheme.secondary,
+                ),
+              ),
+            ],
+          ),
+        ),
+        if (trailing != null) trailing!,
+        if (trailing == null && onTap != null)
+          Icon(
+            Icons.chevron_right_rounded,
+            color: Theme.of(context).colorScheme.secondary.withOpacity(0.5),
+          ),
+      ],
     );
   }
 }

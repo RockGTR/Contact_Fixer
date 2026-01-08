@@ -26,14 +26,14 @@ class RateLimitIndicator extends StatelessWidget {
         IconData icon;
 
         if (isLimit) {
-          color = Colors.red;
-          icon = Icons.error;
-        } else if (isWarning) {
-          color = Colors.orange;
-          icon = Icons.warning_amber;
+          color = const Color(0xFFef4444); // Red
+          icon = Icons.error_rounded;
+        } else if (percentage > 0.9) {
+          color = const Color(0xFFf59e0b); // Amber/Orange
+          icon = Icons.warning_amber_rounded;
         } else {
-          color = Colors.amber;
-          icon = Icons.info;
+          color = const Color(0xFF3b82f6); // Blue
+          icon = Icons.info_outline_rounded;
         }
 
         return AnimatedContainer(
@@ -142,10 +142,19 @@ class RateLimitIndicator extends StatelessWidget {
                           decoration: BoxDecoration(
                             gradient: LinearGradient(
                               colors: isLimit
-                                  ? [Colors.red.shade700, Colors.red]
-                                  : isWarning
-                                  ? [Colors.orange.shade700, Colors.orange]
-                                  : [Colors.amber.shade700, Colors.amber],
+                                  ? [
+                                      const Color(0xFFdc2626),
+                                      const Color(0xFFef4444),
+                                    ]
+                                  : percentage > 0.9
+                                  ? [
+                                      const Color(0xFFd97706),
+                                      const Color(0xFFf59e0b),
+                                    ]
+                                  : [
+                                      const Color(0xFF2563eb),
+                                      const Color(0xFF3b82f6),
+                                    ],
                             ),
                             borderRadius: BorderRadius.circular(4),
                             boxShadow: isLimit || isWarning
@@ -170,8 +179,10 @@ class RateLimitIndicator extends StatelessWidget {
                 const SizedBox(height: 8),
                 Text(
                   isLimit
-                      ? 'At capacity - requests will auto-resume as edits free up'
-                      : 'High usage - quota refreshes on a rolling 60-second window',
+                      ? 'At capacity - requests will auto-resume shortly'
+                      : percentage > 0.9
+                      ? 'Approaching limit - quota refreshes every 60s'
+                      : 'Standard usage - quota refreshes every 60s',
                   style: TextStyle(
                     color: Colors.grey.shade700,
                     fontSize: 11,

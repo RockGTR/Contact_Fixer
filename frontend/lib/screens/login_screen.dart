@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
+import '../widgets/neumorphic_container.dart';
+import '../widgets/neumorphic_button.dart';
 
 class LoginScreen extends StatelessWidget {
   const LoginScreen({super.key});
@@ -8,177 +10,128 @@ class LoginScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [const Color(0xFF667eea), const Color(0xFF764ba2)],
-          ),
-        ),
-        child: SafeArea(
-          child: Center(
-            child: Padding(
-              padding: const EdgeInsets.all(32.0),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  // Logo Container with glassmorphism effect
-                  Container(
-                    padding: const EdgeInsets.all(24),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.2),
-                      borderRadius: BorderRadius.circular(24),
-                      border: Border.all(
-                        color: Colors.white.withOpacity(0.3),
-                        width: 1.5,
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.1),
-                          blurRadius: 20,
-                          offset: const Offset(0, 10),
-                        ),
-                      ],
-                    ),
-                    child: const Icon(
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      body: SafeArea(
+        child: Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(32.0),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                // Logo Container - Extruded
+                NeumorphicContainer(
+                  width: 120,
+                  height: 120,
+                  borderRadius: BorderRadius.circular(40),
+                  child: Center(
+                    child: Icon(
                       Icons.contacts_rounded,
                       size: 64,
-                      color: Colors.white,
+                      color: const Color(0xFF6C63FF),
                     ),
                   ),
-                  const SizedBox(height: 32),
+                ),
+                const SizedBox(height: 48),
 
-                  // App Title
-                  const Text(
-                    'Contact Fixer',
-                    style: TextStyle(
-                      fontSize: 36,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                      letterSpacing: -0.5,
-                    ),
+                // App Title
+                Text(
+                  'Contact Fixer',
+                  style: Theme.of(context).textTheme.displayLarge,
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 16),
+
+                // Tagline
+                Text(
+                  'Standardize your phone numbers\neffortlessly',
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                    color: Theme.of(context).colorScheme.secondary,
+                    height: 1.5,
                   ),
-                  const SizedBox(height: 12),
+                ),
 
-                  // Tagline
-                  Text(
-                    'Standardize your phone numbers effortlessly',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 16,
-                      color: Colors.white.withOpacity(0.85),
-                      fontWeight: FontWeight.w300,
-                    ),
-                  ),
+                const SizedBox(height: 64),
 
-                  const SizedBox(height: 64),
-
-                  // Sign In Button with modern styling
-                  Container(
-                    width: double.infinity,
-                    height: 56,
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(16),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.2),
-                          blurRadius: 15,
-                          offset: const Offset(0, 8),
+                // Sign In Button - Neumorphic
+                NeumorphicButton(
+                  onTap: () {
+                    Provider.of<AuthProvider>(context, listen: false).login();
+                  },
+                  width: double.infinity,
+                  height: 64,
+                  borderRadius: BorderRadius.circular(20),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Image.network(
+                        'https://www.google.com/favicon.ico',
+                        height: 24,
+                        width: 24,
+                        errorBuilder: (context, error, stackTrace) => Icon(
+                          Icons.login,
+                          color: Theme.of(context).colorScheme.primary,
                         ),
-                      ],
-                    ),
-                    child: ElevatedButton(
-                      onPressed: () {
-                        Provider.of<AuthProvider>(
+                      ),
+                      const SizedBox(width: 16),
+                      Text(
+                        'Sign in with Google',
+                        style: Theme.of(
                           context,
-                          listen: false,
-                        ).login();
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.white,
-                        foregroundColor: const Color(0xFF667eea),
-                        elevation: 0,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
-                        ),
+                        ).textTheme.titleLarge?.copyWith(fontSize: 18),
                       ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Image.network(
-                            'https://www.google.com/favicon.ico',
-                            height: 24,
-                            width: 24,
-                            errorBuilder: (context, error, stackTrace) =>
-                                const Icon(Icons.g_mobiledata, size: 28),
-                          ),
-                          const SizedBox(width: 12),
-                          const Text(
-                            'Sign in with Google',
-                            style: TextStyle(
-                              fontSize: 17,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
+                    ],
                   ),
+                ),
 
-                  const SizedBox(height: 48),
+                const SizedBox(height: 48),
 
-                  // Bottom info
-                  Text(
-                    'Your contacts stay private and secure',
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: Colors.white.withOpacity(0.6),
-                    ),
+                // Bottom info
+                Text(
+                  'Your contacts stay private and secure',
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: Theme.of(context).colorScheme.secondary,
                   ),
+                ),
 
-                  // Error message
-                  Consumer<AuthProvider>(
-                    builder: (context, auth, _) {
-                      if (auth.errorMessage == null) {
-                        return const SizedBox.shrink();
-                      }
-                      return Padding(
-                        padding: const EdgeInsets.only(top: 24),
-                        child: Container(
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: Colors.red.withOpacity(0.2),
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(
-                              color: Colors.red.withOpacity(0.3),
+                // Error message
+                Consumer<AuthProvider>(
+                  builder: (context, auth, _) {
+                    if (auth.errorMessage == null) {
+                      return const SizedBox.shrink();
+                    }
+                    return Padding(
+                      padding: const EdgeInsets.only(top: 32),
+                      child: NeumorphicContainer(
+                        padding: const EdgeInsets.all(16),
+                        borderRadius: BorderRadius.circular(16),
+                        // Light red simulation for error state if desired, or keep neutral
+                        // For now keeping neutral with red text
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.error_outline,
+                              color: Colors.red[400],
+                              size: 20,
                             ),
-                          ),
-                          child: Row(
-                            children: [
-                              const Icon(
-                                Icons.error_outline,
-                                color: Colors.white,
-                                size: 20,
-                              ),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: Text(
-                                  auth.errorMessage!,
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 13,
-                                  ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Text(
+                                auth.errorMessage!,
+                                style: TextStyle(
+                                  color: Colors.red[400],
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w500,
                                 ),
                               ),
-                            ],
-                          ),
+                            ),
+                          ],
                         ),
-                      );
-                    },
-                  ),
-                ],
-              ),
+                      ),
+                    );
+                  },
+                ),
+              ],
             ),
           ),
         ),

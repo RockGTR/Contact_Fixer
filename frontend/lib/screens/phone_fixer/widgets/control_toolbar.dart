@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../../../widgets/neumorphic_container.dart';
+import '../../../widgets/neumorphic_button.dart';
 import '../utils/phone_fixer_utils.dart';
 
 class ControlToolbar extends StatelessWidget {
@@ -7,7 +9,7 @@ class ControlToolbar extends StatelessWidget {
   final bool isSwipeView;
   final VoidCallback onToggleView;
   final Function(dynamic) onSortSelected;
-  final VoidCallback? onAcceptAll; // Made optional - Accept All is disabled
+  final VoidCallback? onAcceptAll; // Optional parameter
   final int contactCount;
 
   const ControlToolbar({
@@ -17,7 +19,7 @@ class ControlToolbar extends StatelessWidget {
     required this.isSwipeView,
     required this.onToggleView,
     required this.onSortSelected,
-    this.onAcceptAll, // Optional parameter
+    this.onAcceptAll,
     required this.contactCount,
   });
 
@@ -28,36 +30,20 @@ class ControlToolbar extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          // Accept All Button - DISABLED (Premium Feature - Coming Soon)
-          // Disabled due to rate limiting concerns (60 requests/minute)
-          // Future implementation will use batch API endpoint
-          /* 
-          ElevatedButton.icon(
-            onPressed: contactCount > 0 ? onAcceptAll : null,
-            icon: const Icon(Icons.done_all, size: 18),
-            label: const Text('Accept All'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF10b981),
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-            ),
-          ),
-          */
           Row(
             children: [
-              // Sort Menu
-              Container(
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.grey.shade200),
-                ),
+              // Sort Menu in Neumorphic Container
+              NeumorphicContainer(
+                borderRadius: BorderRadius.circular(12),
                 child: PopupMenuButton<dynamic>(
-                  icon: const Icon(Icons.sort, color: Colors.black54),
+                  icon: Icon(
+                    Icons.sort_rounded,
+                    color: Theme.of(context).colorScheme.secondary,
+                  ),
                   tooltip: 'Sort Contacts',
+                  color: Theme.of(context).scaffoldBackgroundColor,
+                  elevation:
+                      4, // Popup menu elevation can't be easily neumorphicized without custom popup
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
@@ -71,8 +57,8 @@ class ControlToolbar extends StatelessWidget {
                           if (sortOption == SortOption.name)
                             Icon(
                               isAscending
-                                  ? Icons.arrow_upward
-                                  : Icons.arrow_downward,
+                                  ? Icons.arrow_upward_rounded
+                                  : Icons.arrow_downward_rounded,
                               size: 16,
                             ),
                         ],
@@ -86,8 +72,8 @@ class ControlToolbar extends StatelessWidget {
                           if (sortOption == SortOption.phone)
                             Icon(
                               isAscending
-                                  ? Icons.arrow_upward
-                                  : Icons.arrow_downward,
+                                  ? Icons.arrow_upward_rounded
+                                  : Icons.arrow_downward_rounded,
                               size: 16,
                             ),
                         ],
@@ -101,8 +87,8 @@ class ControlToolbar extends StatelessWidget {
                           if (sortOption == SortOption.lastModified)
                             Icon(
                               isAscending
-                                  ? Icons.arrow_upward
-                                  : Icons.arrow_downward,
+                                  ? Icons.arrow_upward_rounded
+                                  : Icons.arrow_downward_rounded,
                               size: 16,
                             ),
                         ],
@@ -122,18 +108,35 @@ class ControlToolbar extends StatelessWidget {
                   ],
                 ),
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: 16),
 
-              // Toggle View Button
-              ActionChip(
-                avatar: Icon(
-                  isSwipeView ? Icons.view_list : Icons.style,
-                  size: 18,
+              // Toggle View Button using NeumorphicButton
+              NeumorphicButton(
+                onTap: onToggleView,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
                 ),
-                label: Text(isSwipeView ? 'List View' : 'Swipe View'),
-                onPressed: onToggleView,
-                backgroundColor: const Color(0xFFE8EAF6),
-                labelStyle: const TextStyle(color: Color(0xFF3949AB)),
+                borderRadius: BorderRadius.circular(24),
+                child: Row(
+                  children: [
+                    Icon(
+                      isSwipeView
+                          ? Icons.view_list_rounded
+                          : Icons.style_outlined,
+                      size: 18,
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      isSwipeView ? 'List View' : 'Card View',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w600,
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ],
           ),

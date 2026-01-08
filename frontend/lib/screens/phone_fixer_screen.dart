@@ -34,6 +34,7 @@ class _PhoneFixerScreenState extends State<PhoneFixerScreen>
   int _rejectCount = 0;
   int _editCount = 0;
   bool _isSwipeView = false;
+  bool _wasSwipeView = false; // Store previous view state
 
   bool _isSearching = false;
   final TextEditingController _searchController = TextEditingController();
@@ -101,8 +102,12 @@ class _PhoneFixerScreenState extends State<PhoneFixerScreen>
 
   Future<void> _loadPendingStats() async {
     try {
-      // Track API call
-      Provider.of<RateLimitTracker>(context, listen: false).recordRequest();
+      // Track API call safely after build
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          Provider.of<RateLimitTracker>(context, listen: false).recordRequest();
+        }
+      });
 
       final idToken = await getIdToken(context);
       final result = await _api.getPendingChanges(idToken);
@@ -387,59 +392,86 @@ class _PhoneFixerScreenState extends State<PhoneFixerScreen>
         : sessionCount;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F7FA),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: const Color(0xFF667eea),
-        foregroundColor: Colors.white,
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+        foregroundColor: Theme.of(context).colorScheme.primary, // Dark text
+        elevation: 0,
+        leading: _isSearching
+            ? IconButton(
+                icon: const Icon(Icons.arrow_back),
+                onPressed: () {
+                  setState(() {
+                    _isSearching = false;
+                    _searchQuery = '';
+                    _searchController.clear();
+                    _isSwipeView = _wasSwipeView; // Restore previous view state
+                  });
+                },
+              )
+            : null,
         title: _isSearching
             ? TextField(
                 controller: _searchController,
                 autofocus: true,
-                style: const TextStyle(color: Colors.white),
-                cursorColor: Colors.white,
-                decoration: const InputDecoration(
+                style: TextStyle(color: Theme.of(context).colorScheme.primary),
+                cursorColor: Theme.of(context).colorScheme.primary,
+                decoration: InputDecoration(
                   hintText: 'Search contacts...',
-                  hintStyle: TextStyle(color: Colors.white70),
+                  hintStyle: TextStyle(
+                    color: Theme.of(context).colorScheme.secondary,
+                  ),
                   border: InputBorder.none,
                 ),
                 onChanged: (value) {
                   setState(() => _searchQuery = value);
                 },
               )
-            : const Text(
+            : Text(
                 'Phone Fixer',
-                style: TextStyle(fontWeight: FontWeight.w600),
+                style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 24,
+                ),
               ),
         actions: [
           const RateLimitBadge(), // Show badge when approaching limit
           if (!_isSearching)
-            IconButton(
-              icon: const Icon(Icons.search),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8.0),
+              child: IconButton(
+                icon: const Icon(Icons.search),
+                onPressed: () {
+                  setState(() {
+                    _isSearching = true;
+                    _wasSwipeView = _isSwipeView; // Capture current state
+                    _isSwipeView = false; // Switch to list view
+                  });
+                },
+              ),
+            ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8.0),
+            child: IconButton(
+              icon: Badge(
+                label: Text('$displayCount'),
+                isLabelVisible: displayCount > 0,
+                child: const Icon(Icons.playlist_add_check),
+              ),
+              tooltip: 'View pending changes',
               onPressed: () {
-                setState(() {
-                  _isSearching = true;
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) =>
+                        PendingChangesScreen(regionCode: widget.regionCode),
+                  ),
+                ).then((_) {
+                  _loadContacts();
+                  _loadPendingStats();
                 });
               },
             ),
-          IconButton(
-            icon: Badge(
-              label: Text('${_acceptCount + _rejectCount + _editCount}'),
-              isLabelVisible: (_acceptCount + _rejectCount + _editCount) > 0,
-              child: const Icon(Icons.playlist_add_check),
-            ),
-            tooltip: 'View pending changes',
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) =>
-                      PendingChangesScreen(regionCode: widget.regionCode),
-                ),
-              ).then((_) {
-                _loadContacts();
-                _loadPendingStats();
-              });
-            },
           ),
         ],
       ),
@@ -458,7 +490,11 @@ class _PhoneFixerScreenState extends State<PhoneFixerScreen>
           ),
           Expanded(
             child: _isLoading
-                ? const Center(child: CircularProgressIndicator())
+                ? Center(
+                    child: CircularProgressIndicator(
+                      color: Theme.of(context).colorScheme.secondary,
+                    ),
+                  )
                 : _filteredContacts.isEmpty
                 ? EmptyState(
                     totalProcessed: _acceptCount + _editCount,
@@ -466,7 +502,7 @@ class _PhoneFixerScreenState extends State<PhoneFixerScreen>
                         ? _navigateToPendingChanges
                         : null,
                   )
-                : _isSwipeView
+                : _isSwipeView && !_isSearching
                 ? SwipeViewMode(
                     controller: _controller,
                     contacts: _filteredContacts,

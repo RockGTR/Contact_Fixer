@@ -451,5 +451,5 @@ See [FRONTEND_AUTH_INTEGRATION.md](FRONTEND_AUTH_INTEGRATION.md) for details.
 
 ---
 
-**Last Updated**: 2026-01-07  
-**API Version**: 1.0.0 (Security Hardening Release)
+**Last Updated**: 2026-01-08  
+**API Version**: 1.2.4
