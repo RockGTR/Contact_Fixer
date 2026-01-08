@@ -47,7 +47,7 @@ These operations use **bulk/batch endpoints** and are safe from rate limiting:
 
 **Accept All Button** - Currently disabled to prevent rate limit issues
 
-The "Accept All" feature was making individual `/contacts/stage_fix` API calls in a loop for each contact. With large contact lists (100+ contacts), this could approach the 100 requests/minute limit, especially when combined with other operations.
+The "Accept All" feature was making individual `/contacts/stage_fix` API calls in a loop for each contact. With large contact lists (100+ contacts), this could approach the 60 requests/minute limit, especially when combined with other operations.
 
 **Status**: Disabled and commented out in `control_toolbar.dart`  
 **Future**: Will be re-implemented as a premium feature using a batch API endpoint
@@ -55,8 +55,7 @@ The "Accept All" feature was making individual `/contacts/stage_fix` API calls i
 ```dart
 // control_toolbar.dart - Lines 31-47
 // Accept All Button - DISABLED (Premium Feature - Coming Soon)
-// Previously disabled due to rate limiting with 60 req/min limit
-// Now feasible with increased 100 req/min limit + visual indicator
+// Disabled due to rate limiting with 60 req/min limit
 // Future implementation will use batch API endpoint
 /* 
 ElevatedButton.icon(
@@ -253,5 +252,5 @@ See [TROUBLESHOOTING.md](TROUBLESHOOTING.md) for authentication-related issues.
 
 ---
 
-**Last Updated**: 2026-01-07  
-**Version**: 1.2.1
+**Last Updated**: 2026-01-08  
+**Version**: 1.2.4

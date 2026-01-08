@@ -5,18 +5,36 @@ Flutter mobile app for contact phone number standardization with Tinder-style sw
 
 ## Key Features
 
-### Phone Fixer Screen
-Two view modes (toggle via app bar icon):
+## Design System: Neumorphism (Soft UI)
 
-**Swipe View (Default)**
-- ➡️ **Right swipe** = Accept fix
-- ⬅️ **Left swipe** = Skip/Reject
-- ⬆️ **Up swipe** = Edit manually
-- Centered cards with swipe indicators
+The application now follows a **Neumorphic** design language, characterized by:
 
-**List View**
-- Scrollable list of all contacts
-- Action buttons (✗ ✎ ✓) per row
+*   **Color Palette**:
+    *   **Background**: Cool Grey (`0xFFE0E5EC`) - Use `Theme.of(context).scaffoldBackgroundColor`.
+    *   **Text**: Dark Blue-Grey (`0xFF4b5563`) for primary text.
+    *   **Accents**:
+        *   Green (`0xFF10b981`) for Accept/Success.
+        *   Red (`0xFFef4444`) for Reject/Skip.
+        *   Blue (`0xFF667eea`) for Edit/Action.
+
+*   **Core Components**:
+    *   **`NeumorphicContainer`**: The fundamental building block. Supports `isPressed` state for concave (inset) or convex (extruded) shadow effects.
+    *   **`NeumorphicButton`**: an interactive wrapper around `NeumorphicContainer` that animates on press.
+    *   **`ContactCard`**: A complex composite widget using multiple neumorphic layers to display contact info elegantly.
+
+### Key Layout Patterns
+
+*   **Swipe View**: Uses `CardSwiper` within a centered, constrained box (max-width 600px) to ensure focus and prevent stretching on large screens.
+*   **List View**: Standard list with neumorphic styling for items, automatically activated during search.
+*   **Stats Bar**: A `Row` of `StatChip` widgets, evenly spaced to provide a quick summary of session progress.
+
+## Screens
+
+### 1. Phone Fixer Screen (`phone_fixer_screen.dart`)
+The main workspace.
+*   **State**: Manages `_contacts`, `_pendingStats`, and view modes (`Swipe` vs `List`).
+*   **Logic**: Handles API calls, local state updates (optimistic UI), and rate limit tracking.
+*   **Fixes**: Includes robust error handling for `setState` during build phases.
 
 ### Visual Features
 - **Alphabet-based colors** - Avatar colors vary A-Z (red→green→blue→purple)

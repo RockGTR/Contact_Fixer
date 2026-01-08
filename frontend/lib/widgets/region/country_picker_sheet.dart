@@ -66,9 +66,9 @@ class _CountryPickerSheetState extends State<CountryPickerSheet>
   Widget build(BuildContext context) {
     return Container(
       height: MediaQuery.of(context).size.height * 0.75,
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      decoration: BoxDecoration(
+        color: Theme.of(context).scaffoldBackgroundColor,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
       ),
       child: Column(
         children: [
@@ -78,38 +78,46 @@ class _CountryPickerSheetState extends State<CountryPickerSheet>
             width: 40,
             height: 4,
             decoration: BoxDecoration(
-              color: Colors.grey.shade300,
+              color: Theme.of(context).colorScheme.secondary.withOpacity(0.3),
               borderRadius: BorderRadius.circular(2),
             ),
           ),
 
           // Title
-          const Padding(
-            padding: EdgeInsets.all(20),
+          Padding(
+            padding: const EdgeInsets.all(24),
             child: Text(
               'Select Default Region',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                color: Color(0xFF1f2937),
-              ),
+              style: Theme.of(
+                context,
+              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
             ),
           ),
 
           // Search
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
+            padding: const EdgeInsets.symmetric(horizontal: 24),
             child: TextField(
               controller: _searchController,
               onChanged: (value) => setState(() => _searchQuery = value),
+              style: TextStyle(color: Theme.of(context).colorScheme.primary),
               decoration: InputDecoration(
                 hintText: 'Search countries...',
-                hintStyle: TextStyle(color: Colors.grey.shade400),
-                prefixIcon: Icon(Icons.search, color: Colors.grey.shade400),
+                hintStyle: TextStyle(
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.secondary.withOpacity(0.5),
+                ),
+                prefixIcon: Icon(
+                  Icons.search_rounded,
+                  color: Theme.of(context).colorScheme.secondary,
+                ),
                 filled: true,
-                fillColor: const Color(0xFFF5F7FA),
+                fillColor: Theme.of(
+                  context,
+                ).colorScheme.surface, // Or just a slightly darker shade
                 border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(16),
                   borderSide: BorderSide.none,
                 ),
                 contentPadding: const EdgeInsets.symmetric(
@@ -120,26 +128,19 @@ class _CountryPickerSheetState extends State<CountryPickerSheet>
             ),
           ),
 
-          const SizedBox(height: 12),
+          const SizedBox(height: 24),
 
           // Suggested Regions Section (only show when not searching)
           if (_searchQuery.isEmpty && _suggestedRegions.isNotEmpty) ...[
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
+              padding: const EdgeInsets.symmetric(horizontal: 24),
               child: Container(
-                padding: const EdgeInsets.all(12),
+                padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [
-                      const Color(0xFF667eea).withOpacity(0.08),
-                      const Color(0xFF764ba2).withOpacity(0.05),
-                    ],
-                  ),
-                  borderRadius: BorderRadius.circular(12),
+                  color: const Color(0xFF667eea).withOpacity(0.05),
+                  borderRadius: BorderRadius.circular(20),
                   border: Border.all(
-                    color: const Color(0xFF667eea).withOpacity(0.15),
+                    color: const Color(0xFF667eea).withOpacity(0.1),
                   ),
                 ),
                 child: Column(
@@ -147,12 +148,12 @@ class _CountryPickerSheetState extends State<CountryPickerSheet>
                   children: [
                     Row(
                       children: [
-                        Icon(
+                        const Icon(
                           Icons.auto_awesome,
                           size: 16,
-                          color: const Color(0xFF667eea),
+                          color: Color(0xFF667eea),
                         ),
-                        const SizedBox(width: 6),
+                        const SizedBox(width: 8),
                         Text(
                           'Suggested for your contacts',
                           style: TextStyle(
@@ -163,7 +164,7 @@ class _CountryPickerSheetState extends State<CountryPickerSheet>
                         ),
                       ],
                     ),
-                    const SizedBox(height: 10),
+                    const SizedBox(height: 12),
                     ...(_suggestedRegions.take(3).map((r) {
                       final regionCode = r['region'] as String;
                       final count = r['count'] as int;
@@ -174,10 +175,10 @@ class _CountryPickerSheetState extends State<CountryPickerSheet>
                           country.code == widget.selectedCountry.code;
 
                       return Padding(
-                        padding: const EdgeInsets.only(bottom: 6),
+                        padding: const EdgeInsets.only(bottom: 8),
                         child: InkWell(
                           onTap: () => widget.onSelected(country),
-                          borderRadius: BorderRadius.circular(10),
+                          borderRadius: BorderRadius.circular(12),
                           child: Container(
                             padding: const EdgeInsets.symmetric(
                               horizontal: 12,
@@ -186,14 +187,8 @@ class _CountryPickerSheetState extends State<CountryPickerSheet>
                             decoration: BoxDecoration(
                               color: isSelected
                                   ? const Color(0xFF667eea).withOpacity(0.15)
-                                  : Colors.white,
-                              borderRadius: BorderRadius.circular(10),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withOpacity(0.03),
-                                  blurRadius: 4,
-                                ),
-                              ],
+                                  : Theme.of(context).scaffoldBackgroundColor,
+                              borderRadius: BorderRadius.circular(12),
                             ),
                             child: Row(
                               children: [
@@ -201,7 +196,7 @@ class _CountryPickerSheetState extends State<CountryPickerSheet>
                                   country.flag,
                                   style: const TextStyle(fontSize: 24),
                                 ),
-                                const SizedBox(width: 10),
+                                const SizedBox(width: 12),
                                 Expanded(
                                   child: Column(
                                     crossAxisAlignment:
@@ -209,20 +204,25 @@ class _CountryPickerSheetState extends State<CountryPickerSheet>
                                     children: [
                                       Text(
                                         country.name,
-                                        style: TextStyle(
-                                          fontSize: 14,
-                                          fontWeight: isSelected
-                                              ? FontWeight.bold
-                                              : FontWeight.w500,
-                                          color: const Color(0xFF1f2937),
-                                        ),
+                                        style: Theme.of(context)
+                                            .textTheme
+                                            .bodyMedium
+                                            ?.copyWith(
+                                              fontWeight: isSelected
+                                                  ? FontWeight.bold
+                                                  : FontWeight.w500,
+                                            ),
                                       ),
                                       Text(
                                         country.dialCode,
-                                        style: TextStyle(
-                                          fontSize: 12,
-                                          color: Colors.grey.shade500,
-                                        ),
+                                        style: Theme.of(context)
+                                            .textTheme
+                                            .bodySmall
+                                            ?.copyWith(
+                                              color: Theme.of(
+                                                context,
+                                              ).colorScheme.secondary,
+                                            ),
                                       ),
                                     ],
                                   ),
@@ -250,7 +250,7 @@ class _CountryPickerSheetState extends State<CountryPickerSheet>
                                 if (isSelected) ...[
                                   const SizedBox(width: 8),
                                   const Icon(
-                                    Icons.check_circle,
+                                    Icons.check_circle_rounded,
                                     color: Color(0xFF667eea),
                                     size: 20,
                                   ),
@@ -266,22 +266,26 @@ class _CountryPickerSheetState extends State<CountryPickerSheet>
               ),
             ),
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
               child: Row(
                 children: [
-                  Expanded(child: Divider(color: Colors.grey.shade300)),
+                  Expanded(
+                    child: Divider(color: Theme.of(context).dividerColor),
+                  ),
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 12),
                     child: Text(
                       'All Countries',
                       style: TextStyle(
                         fontSize: 12,
-                        color: Colors.grey.shade500,
+                        color: Theme.of(context).colorScheme.secondary,
                         fontWeight: FontWeight.w500,
                       ),
                     ),
                   ),
-                  Expanded(child: Divider(color: Colors.grey.shade300)),
+                  Expanded(
+                    child: Divider(color: Theme.of(context).dividerColor),
+                  ),
                 ],
               ),
             ),
@@ -290,7 +294,7 @@ class _CountryPickerSheetState extends State<CountryPickerSheet>
           // Country list
           Expanded(
             child: ListView.builder(
-              padding: const EdgeInsets.symmetric(horizontal: 12),
+              padding: const EdgeInsets.symmetric(horizontal: 16),
               itemCount: filteredCountries.length,
               itemBuilder: (context, index) {
                 final country = filteredCountries[index];
@@ -299,7 +303,11 @@ class _CountryPickerSheetState extends State<CountryPickerSheet>
                 return ListTile(
                   onTap: () => widget.onSelected(country),
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 4,
                   ),
                   selected: isSelected,
                   selectedTileColor: const Color(0xFF667eea).withOpacity(0.1),
@@ -309,19 +317,23 @@ class _CountryPickerSheetState extends State<CountryPickerSheet>
                   ),
                   title: Text(
                     country.name,
-                    style: TextStyle(
+                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                       fontWeight: isSelected
                           ? FontWeight.bold
                           : FontWeight.w500,
-                      color: const Color(0xFF1f2937),
                     ),
                   ),
                   subtitle: Text(
                     country.dialCode,
-                    style: TextStyle(color: Colors.grey.shade600),
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.secondary,
+                    ),
                   ),
                   trailing: isSelected
-                      ? const Icon(Icons.check_circle, color: Color(0xFF667eea))
+                      ? const Icon(
+                          Icons.check_circle_rounded,
+                          color: Color(0xFF667eea),
+                        )
                       : null,
                 );
               },

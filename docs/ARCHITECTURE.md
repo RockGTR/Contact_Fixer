@@ -161,7 +161,9 @@ Contact Fixer v1.2 implements a secure, multi-platform architecture with enterpr
 - **Authentication**: google_sign_in (v6)
   - Mobile: Direct ID token generation
   - Web: Access token with backend exchange
-- **UI Components**: Material Design 3
+- **UI Components**: Material Design 3 + Custom Neumorphic System
+  - `flutter_card_swiper` for gestures
+  - `google_fonts` for typography
 
 ### Backend
 - **Framework**: FastAPI (Python)

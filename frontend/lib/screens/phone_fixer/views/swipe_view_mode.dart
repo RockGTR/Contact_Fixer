@@ -32,8 +32,9 @@ class SwipeViewMode extends StatelessWidget {
     return Column(
       children: [
         // Progress indicator
-        Padding(
-          padding: const EdgeInsets.all(16),
+        Container(
+          height: 120,
+          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
@@ -41,25 +42,25 @@ class SwipeViewMode extends StatelessWidget {
                 label: 'Accepted',
                 count: acceptCount,
                 color: const Color(0xFF10b981),
-                icon: Icons.check,
+                icon: Icons.check_rounded,
               ),
               StatChip(
                 label: 'Skipped',
                 count: rejectCount,
                 color: const Color(0xFFef4444),
-                icon: Icons.close,
+                icon: Icons.close_rounded,
               ),
               StatChip(
                 label: 'Edited',
                 count: editCount,
                 color: const Color(0xFF667eea),
-                icon: Icons.edit,
+                icon: Icons.edit_rounded,
               ),
               StatChip(
                 label: 'Left',
                 count: contacts.length,
                 color: Colors.grey,
-                icon: Icons.list,
+                icon: Icons.list_rounded,
               ),
             ],
           ),
@@ -105,14 +106,14 @@ class SwipeViewMode extends StatelessWidget {
         // Card swiper
         Expanded(
           child: Center(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 600),
               child: CardSwiper(
                 controller: controller,
                 cardsCount: contacts.length,
                 numberOfCardsDisplayed: contacts.length > 1 ? 2 : 1,
                 backCardOffset: const Offset(0, 40),
-                padding: EdgeInsets.zero,
+                padding: const EdgeInsets.symmetric(horizontal: 16),
                 allowedSwipeDirection: const AllowedSwipeDirection.only(
                   left: true,
                   right: true,
@@ -129,9 +130,12 @@ class SwipeViewMode extends StatelessWidget {
                 },
                 onEnd: onEndReached,
                 cardBuilder: (context, index, percentX, percentY) {
-                  return ContactCard(
-                    contact: contacts[index],
-                    percentX: percentX.toDouble(),
+                  return Center(
+                    child: ContactCard(
+                      contact: contacts[index],
+                      percentX: percentX.toDouble(),
+                      percentY: percentY.toDouble(),
+                    ),
                   );
                 },
               ),

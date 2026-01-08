@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
+
 import 'package:provider/provider.dart';
 import 'providers/auth_provider.dart';
 import 'providers/contacts_provider.dart';
@@ -55,11 +57,43 @@ class ContactFixerApp extends StatelessWidget {
       title: 'Contact Fixer',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
+        scaffoldBackgroundColor: const Color(0xFFE0E5EC),
         colorScheme: ColorScheme.fromSeed(
-          seedColor: Colors.blueAccent,
+          seedColor: const Color(0xFF6C63FF), // Accent highlight
+          surface: const Color(0xFFE0E5EC),
+          primary: const Color(0xFF3D4852), // Text color
+          secondary: const Color(0xFF6B7280), // Muted text
+          background: const Color(0xFFE0E5EC),
           brightness: Brightness.light,
         ),
         useMaterial3: true,
+        textTheme: TextTheme(
+          displayLarge: GoogleFonts.plusJakartaSans(
+            fontSize: 32,
+            fontWeight: FontWeight.w800,
+            color: const Color(0xFF3D4852),
+            letterSpacing: -1.0,
+          ),
+          headlineLarge: GoogleFonts.plusJakartaSans(
+            fontSize: 28,
+            fontWeight: FontWeight.bold,
+            color: const Color(0xFF3D4852),
+            letterSpacing: -0.5,
+          ),
+          titleLarge: GoogleFonts.dmSans(
+            fontSize: 20,
+            fontWeight: FontWeight.w600,
+            color: const Color(0xFF3D4852),
+          ),
+          bodyLarge: GoogleFonts.dmSans(
+            fontSize: 16,
+            color: const Color(0xFF3D4852),
+          ),
+          bodyMedium: GoogleFonts.dmSans(
+            fontSize: 14,
+            color: const Color(0xFF3D4852),
+          ),
+        ),
       ),
       home: Consumer<AuthProvider>(
         builder: (context, auth, _) {

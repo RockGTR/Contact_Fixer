@@ -387,5 +387,5 @@ For issues and questions:
 
 ---
 
-**Last Updated**: 2026-01-07  
-**Version**: 1.2 Production Guide
+**Last Updated**: 2026-01-08  
+**Version**: 1.2.4 Production Guide
