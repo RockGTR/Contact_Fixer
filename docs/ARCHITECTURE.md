@@ -82,7 +82,7 @@ Contact Fixer v1.2 implements a secure, multi-platform architecture with enterpr
 
 #### Layer 2: Backend Middleware
 - **Authentication Middleware**: Verifies all tokens (ID tokens + access tokens)
-- **Rate Limiter**: 60 requests/minute per user
+- **Rate Limiter**: 100 edits/minute per user (with visual indicator)
 - **CORS Protection**: Whitelisted origins only
 
 #### Layer 3: Data Protection

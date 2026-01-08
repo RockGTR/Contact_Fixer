@@ -71,7 +71,7 @@ print('ID Token: ${token?.substring(0, 20)}...'); // Should print token prefix
 ```
 
 ### `429 Too Many Requests` (Rate Limit)
-**Cause**: Exceeded rate limit (default: 60 requests/minute)
+**Cause**: Exceeded rate limit (default: 100 edits/minute). A visual indicator appears at 75% usage to warn you proactively.
 
 **Solutions**:
 1. **Wait 1 minute** - Limits reset every minute

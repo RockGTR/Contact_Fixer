@@ -75,7 +75,7 @@ Configured via `CORS_ORIGINS` environment variable.
 ### POST `/auth/exchange_token`
 **Public endpoint** - Exchange a Google Access Token (Web) for user information to establish a session.
 
-**Rate Limit**: 60 requests/minute (default)
+**Rate Limit**: 100 requests/minute (default)
 
 **Headers**:
 None (Public)
@@ -206,7 +206,7 @@ Authorization: Bearer <id_token>
 ### POST `/contacts/stage_fix`
 Stage a contact fix for later pushing to Google.
 
-**Rate Limit**: 60 requests/minute
+**Rate Limit**: 100 requests/minute
 
 **Headers**:
 ```
