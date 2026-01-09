@@ -21,9 +21,12 @@ class RegionSelector extends StatelessWidget {
           context: context,
           isScrollControlled: true,
           backgroundColor: Colors.transparent,
-          builder: (context) => CountryPickerSheet(
+          builder: (sheetContext) => CountryPickerSheet(
             selectedCountry: selectedCountry,
-            onSelected: onChanged,
+            onSelected: (country) {
+              Navigator.pop(sheetContext); // Close sheet first
+              onChanged(country);
+            },
           ),
         );
       },
