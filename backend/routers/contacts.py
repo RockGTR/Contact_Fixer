@@ -4,7 +4,6 @@ from pydantic import BaseModel, Field, validator
 from typing import Optional
 from backend.services import contact_service, db_service
 from backend.middleware.auth_middleware import get_current_user_email
-from backend.middleware.rate_limit import limiter
 from backend.core.logging_config import security_logger
 import logging
 
@@ -36,7 +35,6 @@ class StageFixRequest(BaseModel):
 # ============= ENDPOINTS WITH AUTHENTICATION =============
 
 @router.get("/")
-@limiter.limit("30/minute")
 async def list_contacts(request: Request):
     """Get all contacts for the authenticated user."""
     user_email = get_current_user_email(request)
@@ -44,7 +42,6 @@ async def list_contacts(request: Request):
     return db_service.get_all_contacts(user_email)
 
 @router.post("/sync")
-@limiter.limit("5/minute")  # Stricter limit for expensive operation
 async def sync_contacts(request: Request):
     """Trigger a fetch from Google for the authenticated user."""
     user_email = get_current_user_email(request)
@@ -61,7 +58,6 @@ async def sync_contacts(request: Request):
         )
 
 @router.get("/missing_extension")
-@limiter.limit("20/minute")
 async def get_missing_extension_contacts(request: Request, region: str = "US"):
     """Returns contacts that need phone number standardization."""
     user_email = get_current_user_email(request)
@@ -95,7 +91,6 @@ async def get_missing_extension_contacts(request: Request, region: str = "US"):
         )
 
 @router.get("/analyze_regions")
-@limiter.limit("10/minute")
 async def analyze_regions(request: Request):
     """Analyzes contacts across multiple regions and returns counts."""
     user_email = get_current_user_email(request)
@@ -115,7 +110,6 @@ async def analyze_regions(request: Request):
 # ============= STAGING ENDPOINTS =============
 
 @router.post("/stage_fix")
-@limiter.limit("60/minute")
 async def stage_fix(request: Request, fix_request: StageFixRequest):
     """
     Stage a contact fix for later pushing to Google.
@@ -150,7 +144,6 @@ async def stage_fix(request: Request, fix_request: StageFixRequest):
         )
 
 @router.get("/pending_changes")
-@limiter.limit("20/minute")
 async def get_pending_changes(request: Request):
     """Get all staged changes and summary for the authenticated user."""
     user_email = get_current_user_email(request)
@@ -164,7 +157,6 @@ async def get_pending_changes(request: Request):
     }
 
 @router.delete("/staged/remove")
-@limiter.limit("30/minute")
 async def remove_staged(request: Request, resource_name: str):
     """Remove a specific staged change."""
     user_email = get_current_user_email(request)
@@ -182,7 +174,6 @@ async def remove_staged(request: Request, resource_name: str):
     return {"status": "removed", "resource_name": resource_name}
 
 @router.delete("/staged")
-@limiter.limit("10/minute")
 async def clear_staged(request: Request):
     """Clear all staged changes for the authenticated user."""
     user_email = get_current_user_email(request)
@@ -192,7 +183,6 @@ async def clear_staged(request: Request):
     return {"status": "cleared"}
 
 @router.post("/push_to_google")
-@limiter.limit("3/minute")  # Very strict limit for this critical operation
 async def push_to_google(request: Request):
     """
     Apply all accepted/edited staged changes to Google Contacts.
@@ -215,7 +205,6 @@ async def push_to_google(request: Request):
 
 
 @router.get("/push_to_google/stream")
-@limiter.limit("3/minute")
 async def push_to_google_stream(request: Request):
     """
     Server-Sent Events (SSE) stream for pushing changes with real-time progress.
