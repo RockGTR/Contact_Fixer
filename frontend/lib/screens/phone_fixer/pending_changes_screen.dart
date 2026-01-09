@@ -10,8 +10,8 @@ import 'widgets/summary_card.dart';
 import 'widgets/change_card.dart';
 import 'dialogs/edit_pending_dialog.dart';
 import 'dialogs/push_progress_dialog.dart';
-import '../../widgets/neumorphic_button.dart';
 import '../../widgets/sync_progress_banner.dart';
+import '../../widgets/sync_action_button.dart';
 
 class PendingChangesScreen extends StatefulWidget {
   final String regionCode;
@@ -27,7 +27,6 @@ class _PendingChangesScreenState extends State<PendingChangesScreen>
   late final ApiService _api;
   Map<String, dynamic>? _data;
   bool _isLoading = true;
-  bool _isPushing = false;
   bool _isSearching = false;
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
@@ -410,42 +409,10 @@ class _PendingChangesScreenState extends State<PendingChangesScreen>
           ? SafeArea(
               child: Padding(
                 padding: const EdgeInsets.all(24),
-                child: NeumorphicButton(
-                  onTap: _isPushing ? () {} : _pushToGoogle,
-                  color: const Color(0xFF10b981), // Accent color for action
-                  height: 56,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 24,
-                    vertical: 16,
-                  ),
-                  child: _isPushing
-                      ? const SizedBox(
-                          height: 24,
-                          width: 24,
-                          child: CircularProgressIndicator(
-                            color: Colors.white,
-                            strokeWidth: 2.5,
-                          ),
-                        )
-                      : Row(
-                          mainAxisSize: MainAxisSize.min,
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            const Icon(
-                              Icons.cloud_upload_rounded,
-                              color: Colors.white,
-                            ),
-                            const SizedBox(width: 12),
-                            Text(
-                              'Sync ${summary['accepts'] + summary['edits']} Changes',
-                              style: const TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.white,
-                              ),
-                            ),
-                          ],
-                        ),
+                child: SyncActionButton(
+                  pendingCount:
+                      (summary['accepts'] ?? 0) + (summary['edits'] ?? 0),
+                  onTap: _pushToGoogle,
                 ),
               ),
             )
