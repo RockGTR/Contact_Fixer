@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Request, HTTPException, status
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field, validator
 from typing import Optional
 from backend.services import contact_service, db_service
@@ -6,6 +7,7 @@ from backend.middleware.auth_middleware import get_current_user_email
 from backend.middleware.rate_limit import limiter
 from backend.core.logging_config import security_logger
 import logging
+
 
 logger = logging.getLogger(__name__)
 
@@ -194,69 +196,44 @@ async def clear_staged(request: Request):
 async def push_to_google(request: Request):
     """
     Apply all accepted/edited staged changes to Google Contacts.
-    Rejects are skipped (no action needed on Google).
+    Throttled to 60 contacts/minute to avoid Google API quota (90/min).
+    Implements exponential backoff on 429 errors.
     """
+    from backend.services import push_service
+    
     user_email = get_current_user_email(request)
     logger.info(f"Pushing changes to Google for user: {user_email}")
     
-    changes = db_service.get_staged_changes(user_email)
+    result = await push_service.push_contacts(user_email)
     
-    if not changes:
-        return {
-            "status": "completed",
-            "pushed": 0,
-            "failed": 0,
-            "skipped": 0,
-            "message": "No staged changes to push"
+    logger.info(
+        f"Push completed for {user_email}: "
+        f"{result['pushed']} success, {result['failed']} failed, {result['skipped']} skipped"
+    )
+    
+    return result
+
+
+@router.get("/push_to_google/stream")
+@limiter.limit("3/minute")
+async def push_to_google_stream(request: Request):
+    """
+    Server-Sent Events (SSE) stream for pushing changes with real-time progress.
+    Throttled to 60 contacts/minute to avoid Google API quota.
+    """
+    from backend.services import push_service
+    
+    user_email = get_current_user_email(request)
+    logger.info(f"Streaming push to Google for user: {user_email}")
+    
+    return StreamingResponse(
+        push_service.push_contacts_stream(user_email),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no"
         }
-    
-    results = {
-        "success": [],
-        "failed": [],
-        "skipped": []
-    }
-    
-    for change in changes:
-        if change['action'] == 'reject':
-            results['skipped'].append(change['contact_name'])
-            continue
-            
-        # For 'accept' and 'edit', push to Google
-        try:
-            contact = db_service.find_contact_by_resource_name(change['resource_name'], user_email)
-            if not contact:
-                results['failed'].append({
-                    "name": change['contact_name'],
-                    "error": "Contact not found in local DB"
-                })
-                logger.warning(f"Contact not found for push: {change['resource_name']}")
-                continue
-                
-            contact_service.update_contact(
-                resource_name=change['resource_name'],
-                etag=contact['etag'],
-                user_email=user_email,
-                new_phone=change['new_phone'],
-                new_name=change['new_name']
-            )
-            results['success'].append(change['contact_name'])
-            logger.info(f"Successfully pushed change for: {change['contact_name']}")
-        except Exception as e:
-            results['failed'].append({
-                "name": change['contact_name'],
-                "error": str(e)
-            })
-            logger.error(f"Failed to push change for {change['contact_name']}: {e}")
-    
-    # Clear all staged changes after push
-    db_service.clear_all_staged_changes(user_email)
-    
-    logger.info(f"Push completed for {user_email}: {len(results['success'])} success, {len(results['failed'])} failed, {len(results['skipped'])} skipped")
-    
-    return {
-        "status": "completed",
-        "pushed": len(results['success']),
-        "failed": len(results['failed']),
-        "skipped": len(results['skipped']),
-        "details": results
-    }
+    )
+
+

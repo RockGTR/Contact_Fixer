@@ -161,9 +161,13 @@ Contact Fixer v1.2 implements a secure, multi-platform architecture with enterpr
 - **Authentication**: google_sign_in (v6)
   - Mobile: Direct ID token generation
   - Web: Access token with backend exchange
+- **Background Sync**: 
+  - `flutter_foreground_task` - Android Foreground Service for persistent execution
+  - `flutter_local_notifications` - Progress notifications
 - **UI Components**: Material Design 3 + Custom Neumorphic System
   - `flutter_card_swiper` for gestures
   - `google_fonts` for typography
+
 
 ### Backend
 - **Framework**: FastAPI (Python)
@@ -295,6 +299,10 @@ Mobile/Web Client → HTTPS Load Balancer
 - **Caching**: Token verification results cached per request
 - **Rate Limiting**: In-memory storage for rate limit counters
 - **Encryption**: Field-level only (not full-disk) for performance
+- **Google API Throttling**: Push operations throttled to 60 contacts/min (1s delay between each) to stay within Google's 90 reads/min quota
+- **Optimistic ETag Updates**: Uses stored ETag first, only fetches fresh on 412 conflict (reduces API calls by ~50%)
+- **Exponential Backoff**: On 429 errors, waits 60s → 120s → 240s before retry
+
 
 ## Scalability
 

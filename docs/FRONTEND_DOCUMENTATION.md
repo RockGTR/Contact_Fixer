@@ -97,18 +97,56 @@ The main workspace.
 ```
 frontend/lib/
 ├── main.dart
-├── models/country.dart
-├── services/api_service.dart
+├── models/
+│   ├── country.dart
+│   └── push_progress_event.dart      # SSE event model
+├── services/
+│   ├── api_service.dart
+│   ├── rate_limit_tracker.dart
+│   ├── notification_service.dart     # Progress notifications
+│   └── background_sync_service.dart  # Android foreground sync
 ├── providers/
 │   ├── auth_provider.dart
 │   ├── contacts_provider.dart
 │   └── settings_provider.dart
-├── widgets/region_selector.dart
-└── screens/
-    ├── login_screen.dart
-    ├── home_screen.dart
-    └── phone_fixer_screen.dart  # Swipe + List views
+├── widgets/
+│   ├── neumorphic_container.dart
+│   ├── neumorphic_button.dart
+│   ├── neumorphic_progress_bar.dart  # Reusable progress bar
+│   ├── push_status_widgets.dart      # Status indicators
+│   ├── push_completion_summary.dart  # Sync results display
+│   ├── sync_progress_banner.dart     # Live sync progress in pending screen
+│   └── region/
+├── screens/
+│   ├── login_screen.dart
+│   ├── home_screen.dart
+│   └── phone_fixer/
+│       ├── phone_fixer_screen.dart
+│       ├── pending_changes_screen.dart
+│       ├── dialogs/
+│       │   ├── push_progress_dialog.dart
+│       │   ├── edit_contact_dialog.dart
+│       │   └── edit_pending_dialog.dart
+│       ├── views/
+│       └── widgets/
 ```
+
+## Background Sync (Android)
+
+When syncing contacts on Android:
+1. Sync runs as a **Foreground Service** (continues when app is minimized/closed)
+2. Shows system **notification with progress**: "Syncing 5/15 contacts..."
+3. On completion: "✓ 15 contacts synced"
+4. Tap notification to return to app
+
+**Live Updates in Pending Changes Screen:**
+- `SyncProgressBanner` appears at top of list during sync
+- Synced contacts **dynamically removed** from the list in real-time
+- Uses `SyncStateProvider` with `context.watch()` for reactive UI updates
+
+**iOS Limitation**: iOS limits background execution to ~30 seconds. For large syncs, keep the app open.
+
+
 
 ## Running
 ```bash

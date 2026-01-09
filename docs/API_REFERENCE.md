@@ -326,6 +326,8 @@ Push all staged changes to Google Contacts.
 
 **Rate Limit**: 3 requests/minute (strict limit for critical operation)
 
+**Throttling**: Contacts are pushed at 60/minute (1 second delay between each) to avoid Google API quota limits.
+
 **Headers**:
 ```
 Authorization: Bearer <id_token>
@@ -348,7 +350,37 @@ Authorization: Bearer <id_token>
 }
 ```
 
+### GET `/contacts/push_to_google/stream`
+**Server-Sent Events (SSE)** stream for pushing changes with real-time progress updates.
+
+**Rate Limit**: 3 requests/minute
+
+**Throttling**: Same as POST - 60 contacts/minute with exponential backoff on 429 errors.
+
+**Headers**:
+```
+Authorization: Bearer <id_token>
+```
+
+**Response** (SSE stream):
+```
+data: {"type": "start", "total": 15, "skipped": 2}
+data: {"type": "progress", "current": 1, "total": 15, "name": "John Doe"}
+data: {"type": "progress", "current": 2, "total": 15, "name": "Jane Smith"}
+data: {"type": "backoff", "wait": 60, "retry": 1, "name": "Bob Wilson"}
+data: {"type": "complete", "pushed": 14, "failed": 1, "skipped": 2}
+```
+
+**Event Types**:
+| Type | Description |
+|------|-------------|
+| `start` | Initial event with total count and skipped (rejects) |
+| `progress` | Sent before processing each contact |
+| `backoff` | Sent when rate-limited, shows wait time in seconds |
+| `complete` | Final event with summary counts |
+
 ---
+
 
 ## Rate Limiting
 

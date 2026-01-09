@@ -1,11 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kIsWeb, debugPrint;
+import 'package:provider/provider.dart';
 import '../../services/api_service.dart';
+import '../../services/background_sync_service.dart';
+import '../../providers/sync_state_provider.dart';
 import '../../mixins/auth_token_mixin.dart';
 import 'utils/phone_fixer_utils.dart';
 import 'widgets/summary_card.dart';
 import 'widgets/change_card.dart';
 import 'dialogs/edit_pending_dialog.dart';
+import 'dialogs/push_progress_dialog.dart';
 import '../../widgets/neumorphic_button.dart';
+import '../../widgets/sync_progress_banner.dart';
 
 class PendingChangesScreen extends StatefulWidget {
   final String regionCode;
@@ -120,28 +126,64 @@ class _PendingChangesScreenState extends State<PendingChangesScreen>
   }
 
   Future<void> _pushToGoogle() async {
-    setState(() => _isPushing = true);
-    try {
-      final idToken = await getIdToken(context);
-      final result = await _api.pushToGoogle(idToken);
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'Pushed ${result['pushed']} contacts, ${result['skipped']} skipped',
-            ),
-            backgroundColor: const Color(0xFF10b981),
-          ),
+    final summary = _data?['summary'] ?? {};
+    final totalContacts = (summary['accepts'] ?? 0) + (summary['edits'] ?? 0);
+
+    if (totalContacts == 0) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('No changes to sync')));
+      return;
+    }
+
+    final idToken = await getIdToken(context);
+    if (idToken == null) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Authentication required')));
+      return;
+    }
+
+    final baseUrl = kIsWeb ? 'http://localhost:8000' : 'http://10.0.2.2:8000';
+
+    // On web or if background sync is already running, use in-app dialog
+    if (kIsWeb || BackgroundSyncService().isRunning) {
+      await showPushProgressDialog(
+        context: context,
+        baseUrl: baseUrl,
+        idToken: idToken,
+        totalContacts: totalContacts,
+      );
+      if (mounted) Navigator.pop(context);
+      return;
+    }
+
+    // On native platforms, use background sync with notifications
+    final syncService = BackgroundSyncService();
+    final syncState = context.read<SyncStateProvider>();
+
+    final started = await syncService.startSync(
+      baseUrl: baseUrl,
+      idToken: idToken,
+      totalContacts: totalContacts,
+      syncStateProvider: syncState,
+      onComplete: (pushed, failed, skipped) {
+        debugPrint(
+          'Sync complete: $pushed pushed, $failed failed, $skipped skipped',
         );
-        Navigator.pop(context);
-      }
-    } catch (e) {
-      setState(() => _isPushing = false);
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Error: $e')));
-      }
+        // Reload the list after completion
+        if (mounted) _loadPendingChanges();
+      },
+    );
+
+    if (started && mounted) {
+      // Stay on screen to show progress
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Syncing in background. Progress shown above.'),
+          duration: Duration(seconds: 2),
+        ),
+      );
     }
   }
 
@@ -246,7 +288,17 @@ class _PendingChangesScreenState extends State<PendingChangesScreen>
   @override
   Widget build(BuildContext context) {
     final summary = _data?['summary'] ?? {};
-    final changes = _filteredChanges;
+
+    // Watch sync state for reactive updates when contacts are synced
+    final syncState = context.watch<SyncStateProvider>();
+    final syncedNames = syncState.syncedContactNames;
+
+    // Get filtered changes, excluding already-synced contacts
+    final allChanges = _filteredChanges;
+    final changes = allChanges.where((c) {
+      final name = c['contact_name']?.toString() ?? '';
+      return !syncedNames.contains(name);
+    }).toList();
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
@@ -323,6 +375,8 @@ class _PendingChangesScreenState extends State<PendingChangesScreen>
             )
           : Column(
               children: [
+                // Show progress banner during background sync
+                const SyncProgressBanner(),
                 if (!_isSearching)
                   SummaryCard(
                     accepts: summary['accepts'] ?? 0,

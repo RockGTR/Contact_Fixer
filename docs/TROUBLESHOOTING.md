@@ -73,13 +73,16 @@ print('ID Token: ${token?.substring(0, 20)}...'); // Should print token prefix
 ```
 
 ### `429 Too Many Requests` (Rate Limit)
-**Cause**: Exceeded rate limit (default: 60 edits/minute). A visual indicator appears at 75% usage to warn you proactively.
+
+There are **two different rate limits** you may encounter:
+
+#### 1. App Rate Limit (60 edits/minute)
+**Cause**: Exceeded Contact Fixer's internal rate limit. A visual indicator appears at 75% usage.
 
 **Solutions**:
 1. **Wait 1 minute** - Limits reset every minute
 2. **Reduce request frequency** - Add delays between operations
 3. **Increase limit** - Edit `RATE_LIMIT_PER_MINUTE` in `.env` (development only)
-4. **Check for loops** - Ensure no infinite request loops in your code
 
 **Per-Endpoint Limits**:
 - Sync: 5/min
@@ -87,7 +90,33 @@ print('ID Token: ${token?.substring(0, 20)}...'); // Should print token prefix
 - Stage: 60/min
 - List: 30/min
 
+#### 2. Google People API Quota (90 reads/minute)
+**Cause**: Exceeded Google's "Critical Read Requests" quota when pushing many contacts.
+
+**Error Message**:
+```
+HttpError 429: Quota exceeded for quota metric 'Critical read requests'
+```
+
+**How Contact Fixer Handles This** (v1.2.6+):
+- **Throttling**: Push operations are limited to 60 contacts/minute (1 second between each)
+- **Optimistic Updates**: Uses stored ETags first, only fetches fresh on conflict
+- **Exponential Backoff**: On 429 error, waits 60s → 120s → 240s before retry
+- **Progress UI**: Real-time progress dialog shows sync status
+
+**If You Still Hit Google's Quota**:
+1. **Wait 1 minute** - Google quotas reset per-minute
+2. **Retry the sync** - Failed contacts remain staged for retry
+3. **Request quota increase** - [Google Cloud Quotas](https://cloud.google.com/docs/quotas/help/request_increase)
+
+**Quota Limits Reference**:
+| Quota | Limit | Description |
+|-------|-------|-------------|
+| Critical Read Requests | 90/min/user | Contact reads (`people.get`) |
+| Write Requests | 10/sec/user | Contact updates |
+
 ---
+
 
 ## 🖥️ Backend Issues
 

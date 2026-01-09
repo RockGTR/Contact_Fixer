@@ -22,8 +22,11 @@
   - **List View**: Bulk review changes in a traditional list format.
 - **Region Support**: Automatically suggests country codes based on your selected region.
 - **Safe Syncing**: Changes are staged first. You review them before they are physically pushed to Google Contacts.
+- **Background Sync (Android)**: Sync continues when app is minimized/closed with progress notifications
+- **Google API Protection**: Throttled to 60 contacts/min with exponential backoff on rate limits
 - **Undo/Rollback**: Staged changes can be modified or deleted before syncing.
 - **Privacy Focused**: All data encrypted and runs locally on your machine.
+
 
 ## Tech Stack
 

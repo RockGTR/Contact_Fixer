@@ -172,29 +172,37 @@ def create_dummy_contact(name: str, phone: str):
         "phone": phone
     }
 
+class GoogleRateLimitError(Exception):
+    """Raised when Google People API returns 429 Too Many Requests."""
+    pass
+
+
+class StaleEtagError(Exception):
+    """Raised when etag is stale and retry with fresh etag also failed."""
+    pass
+
+
 def update_contact(resource_name: str, etag: str, user_email: str, new_phone: str = None, new_name: str = None):
     """
     Updates the phone number and/or name of an existing contact.
-    Fetches fresh data first to ensure ETag is valid.
+    Uses OPTIMISTIC etag strategy: tries stored etag first, only fetches fresh on 412.
     
     Args:
         resource_name: Google contact resource name
-        etag: Current etag (may be stale)
+        etag: Current etag from local DB (may be stale)
         user_email: Email of the authenticated user
         new_phone: New phone number (optional)
         new_name: New name (optional)
+        
+    Raises:
+        GoogleRateLimitError: If Google returns 429 (caller should backoff)
+        StaleEtagError: If etag refresh and retry also failed
     """
+    from googleapiclient.errors import HttpError
+    
     service = get_authenticated_service()
     
-    # [ROBUSTNESS] Fetch latest Etag from Google to prevent 400 Stale Error
-    latest_person = service.people().get(
-        resourceName=resource_name,
-        personFields='names,phoneNumbers'
-    ).execute()
-    
-    fresh_etag = latest_person.get('etag')
-    
-    body = {"etag": fresh_etag}
+    body = {"etag": etag}
     update_fields = []
     
     if new_phone:
@@ -206,18 +214,46 @@ def update_contact(resource_name: str, etag: str, user_email: str, new_phone: st
         update_fields.append('names')
         
     if not update_fields:
-        return latest_person # No changes needed
+        return None  # No changes needed
     
-    result = service.people().updateContact(
-        resourceName=resource_name,
-        updatePersonFields=','.join(update_fields),
-        body=body
-    ).execute()
+    def _do_update(use_etag: str) -> dict:
+        """Execute the updateContact API call."""
+        body["etag"] = use_etag
+        return service.people().updateContact(
+            resourceName=resource_name,
+            updatePersonFields=','.join(update_fields),
+            body=body
+        ).execute()
+    
+    try:
+        # OPTIMISTIC: Try with stored etag first (saves 1 API call per contact)
+        result = _do_update(etag)
+    except HttpError as e:
+        if e.resp.status == 412:
+            # Stale etag - fetch fresh and retry once
+            try:
+                fresh_person = service.people().get(
+                    resourceName=resource_name,
+                    personFields='names,phoneNumbers'
+                ).execute()
+                fresh_etag = fresh_person.get('etag')
+                result = _do_update(fresh_etag)
+            except HttpError as retry_error:
+                if retry_error.resp.status == 429:
+                    raise GoogleRateLimitError(str(retry_error))
+                raise StaleEtagError(f"Retry with fresh etag also failed: {retry_error}")
+        elif e.resp.status == 429:
+            # Rate limit - raise for caller to handle with backoff
+            raise GoogleRateLimitError(str(e))
+        else:
+            raise
     
     # [SYNC-CRITICAL] Immediately update local DB with new Etag
     db_service.save_contacts([result], user_email)
     
     return result
+
+
 
 def get_contacts_missing_extension(user_email: str, default_region: str = "US"):
     """

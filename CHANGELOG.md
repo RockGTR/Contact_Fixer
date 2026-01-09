@@ -1,5 +1,70 @@
 # Contact Fixer - Change Log
 
+## Version 1.2.6 - Google API Throttling & Progress UI (2026-01-08)
+
+### 🚀 New Features
+
+**Real-time Sync Progress Dialog:**
+- Neumorphic progress dialog during "Sync to Google" operations
+- Live progress bar showing X/Y contacts synced
+- Current contact name display
+- Estimated time remaining
+- Cancel button with confirmation
+
+### ⚡ Performance & Reliability
+
+**Google API Quota Protection:**
+- **Throttling**: Push operations limited to 60 contacts/minute (1 second delay between each)
+- **Optimistic ETag Updates**: Uses stored ETag first, only fetches fresh on 412 conflict (reduces API calls by ~50%)
+- **Exponential Backoff**: On 429 errors, waits 60s → 120s → 240s before retry (max 3 retries)
+
+**Backend:**
+- New SSE streaming endpoint `/contacts/push_to_google/stream` for real-time progress
+- Custom `GoogleRateLimitError` exception for proper 429 handling
+- Async throttling with `asyncio.sleep()` for non-blocking delays
+
+**Frontend:**
+- New `PushProgressDialog` widget with neumorphic design
+- SSE stream consumption for live updates
+- Graceful handling of backoff events
+
+**Background Sync (Android):**
+- Sync continues when app is minimized or closed
+- Progress notification: "Syncing 5/15 contacts..."
+- Completion notification with summary
+- Uses Android Foreground Service for reliable execution
+- Packages: `flutter_foreground_task`, `flutter_local_notifications`
+
+**Live Pending Changes Updates:**
+- Neumorphic `SyncProgressBanner` with animated gradient progress bar
+- Inset icon well with accent glow effects
+- Synced contacts dynamically removed from list in real-time
+- `SyncStateProvider` for global sync state management
+- Rate limit status with amber color during backoff waits
+
+
+### 🧹 Code Quality - Modular Refactoring
+
+**Frontend (all files now <300 lines):**
+- Extracted `push_progress_event.dart` - SSE event model
+- Extracted `neumorphic_progress_bar.dart` - Reusable progress bar component
+- Extracted `push_status_widgets.dart` - Status and timer components
+- Extracted `push_completion_summary.dart` - Completion stats display
+- Refactored `push_progress_dialog.dart`: 555→280 lines
+
+**Backend (all files now <300 lines):**
+- New `push_service.py` - Push logic with throttling and backoff
+- Refactored `contacts.py`: 382→241 lines (router now thin)
+
+### 📝 Documentation
+- Updated TROUBLESHOOTING.md with Google API quota vs app rate limit explanation
+- Added quota limits reference table
+- Documented new streaming endpoint in API_REFERENCE.md
+
+
+---
+
+
 ## Version 1.2.5 - Performance Optimizations (2026-01-08)
 
 ### ⚡ Performance Improvements
