@@ -15,3 +15,7 @@ local.properties
 build/
 app/build/
 .DS_Store
+
+# Security: exclude data files
+backend/contacts.db
+backend/logs/
