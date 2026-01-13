@@ -224,3 +224,8 @@ Set up:
 ---
 
 **Need help?** Check the full documentation in `/docs/` directory.
+
+---
+
+**Last Updated**: 2026-01-13  
+**Version**: 1.2.4

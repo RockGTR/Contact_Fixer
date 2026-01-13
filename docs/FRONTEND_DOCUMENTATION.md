@@ -121,3 +121,8 @@ flutter run -d chrome --web-port=3000
 ```
 
 > **Note**: The web app requires the backend to be running with CORS enabled. The backend automatically allows requests from `http://localhost:3000`.
+
+---
+
+**Last Updated**: 2026-01-13  
+**Version**: 1.2.4

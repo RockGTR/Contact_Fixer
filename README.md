@@ -1,6 +1,6 @@
 # **Contact Fixer** is a powerful Flutter mobile application designed to standardize and sync your Google Contacts phone numbers across different regions. Say goodbye to inconsistent phone number formats!
 
-## ✨ Features (v1.2.3)
+## ✨ Features (v1.2.4)
 
 ### 🔐 Security & Authentication
 - **Google Sign-In**: Secure OAuth 2.0 authentication for mobile and web

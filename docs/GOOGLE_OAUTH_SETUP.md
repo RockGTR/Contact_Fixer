@@ -180,5 +180,6 @@ ID tokens expire after ~1 hour. Handle expiration:
 
 ---
 
-**Status**: ✅ Fully configured and working
-**Last Updated**: 2026-01-08
+**Status**: ✅ Fully configured and working  
+**Last Updated**: 2026-01-13  
+**Version**: 1.2.4
