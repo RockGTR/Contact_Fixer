@@ -1,34 +1,23 @@
 import 'package:flutter/material.dart';
+import '../../../widgets/neumorphic_container.dart';
 
 class HowItWorksCard extends StatelessWidget {
   const HowItWorksCard({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.04),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
+    return NeumorphicContainer(
+      padding: const EdgeInsets.all(24),
+      borderRadius: BorderRadius.circular(32),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Container(
+              NeumorphicContainer(
                 padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF667eea).withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(8),
-                ),
+                borderRadius: BorderRadius.circular(12),
+                isPressed: true, // Inset feel for icon background
                 child: const Icon(
                   Icons.info_outline_rounded,
                   size: 20,
@@ -36,33 +25,33 @@ class HowItWorksCard extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 12),
-              const Text(
+              Text(
                 'How it works',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                style: Theme.of(
+                  context,
+                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
               ),
             ],
           ),
           const SizedBox(height: 16),
-          _buildInfoItem('1', 'Sync your Google contacts'),
+          _buildInfoItem(context, '1', 'Sync your Google contacts'),
           const SizedBox(height: 12),
-          _buildInfoItem('2', 'Review numbers needing fixes'),
+          _buildInfoItem(context, '2', 'Review numbers needing fixes'),
           const SizedBox(height: 12),
-          _buildInfoItem('3', 'Apply standardized E.164 format'),
+          _buildInfoItem(context, '3', 'Apply standardized E.164 format'),
         ],
       ),
     );
   }
 
-  Widget _buildInfoItem(String number, String text) {
+  Widget _buildInfoItem(BuildContext context, String number, String text) {
     return Row(
       children: [
-        Container(
-          width: 24,
-          height: 24,
-          decoration: BoxDecoration(
-            color: const Color(0xFF667eea).withOpacity(0.1),
-            shape: BoxShape.circle,
-          ),
+        NeumorphicContainer(
+          width: 28,
+          height: 28,
+          shape: BoxShape.circle,
+          isPressed: true,
           child: Center(
             child: Text(
               number,
@@ -75,7 +64,14 @@ class HowItWorksCard extends StatelessWidget {
           ),
         ),
         const SizedBox(width: 12),
-        Text(text, style: TextStyle(fontSize: 14, color: Colors.grey.shade700)),
+        Expanded(
+          child: Text(
+            text,
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              color: Theme.of(context).colorScheme.secondary,
+            ),
+          ),
+        ),
       ],
     );
   }

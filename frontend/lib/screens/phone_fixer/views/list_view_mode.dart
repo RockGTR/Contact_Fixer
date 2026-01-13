@@ -29,8 +29,9 @@ class ListViewMode extends StatelessWidget {
     return Column(
       children: [
         // Progress indicator
-        Padding(
-          padding: const EdgeInsets.all(16),
+        Container(
+          height: 120,
+          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
@@ -38,25 +39,25 @@ class ListViewMode extends StatelessWidget {
                 label: 'Accepted',
                 count: acceptCount,
                 color: const Color(0xFF10b981),
-                icon: Icons.check,
+                icon: Icons.check_rounded,
               ),
               StatChip(
                 label: 'Skipped',
                 count: rejectCount,
                 color: const Color(0xFFef4444),
-                icon: Icons.close,
+                icon: Icons.close_rounded,
               ),
               StatChip(
                 label: 'Edited',
                 count: editCount,
                 color: const Color(0xFF667eea),
-                icon: Icons.edit,
+                icon: Icons.edit_rounded,
               ),
               StatChip(
                 label: 'Left',
                 count: contacts.length,
                 color: Colors.grey,
-                icon: Icons.list,
+                icon: Icons.list_rounded,
               ),
             ],
           ),
@@ -64,18 +65,23 @@ class ListViewMode extends StatelessWidget {
 
         // List of contacts
         Expanded(
-          child: ListView.builder(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            itemCount: contacts.length,
-            itemBuilder: (context, index) {
-              final contact = contacts[index];
-              return _ContactListItem(
-                contact: contact,
-                onAccept: () => onAccept(contact),
-                onReject: () => onReject(contact),
-                onEdit: () => onEdit(contact),
-              );
-            },
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 500),
+              child: ListView.builder(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                itemCount: contacts.length,
+                itemBuilder: (context, index) {
+                  final contact = contacts[index];
+                  return _ContactListItem(
+                    contact: contact,
+                    onAccept: () => onAccept(contact),
+                    onReject: () => onReject(contact),
+                    onEdit: () => onEdit(contact),
+                  );
+                },
+              ),
+            ),
           ),
         ),
       ],

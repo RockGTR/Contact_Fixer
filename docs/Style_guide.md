@@ -141,7 +141,8 @@ box-shadow: inset 3px 3px 6px rgb(163,177,198,0.6), inset -3px -3px 6px rgba(255
 ### Cards
 - **Shape**: `rounded-[32px]` (Significant rounding).
 - **Background**: `#E0E5EC`.
-- **Padding**: `p-8` to `p-20` depending on prominence.
+- **Constraint**: `max-w-[600px]` for centered swipe view.
+- **Padding**: Internal padding only, avoid external margins that break centering.
 - **Hover**: `translate-y-[-2px]` + `Extruded Hover` shadow.
 - **Feature**: Use nested depth. Card is Extruded -> Icon well inside is Inset Deep -> Icon inside is distinct.
 

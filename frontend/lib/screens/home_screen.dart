@@ -45,7 +45,7 @@ class _HomeScreenState extends State<HomeScreen> {
     final contacts = Provider.of<ContactsProvider>(context);
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F7FA),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: CustomScrollView(
         slivers: [
           // Extracted Header

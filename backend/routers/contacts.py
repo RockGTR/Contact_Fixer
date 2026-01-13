@@ -77,8 +77,9 @@ async def get_missing_extension_contacts(request: Request, region: str = "US"):
     try:
         contacts = contact_service.get_contacts_missing_extension(user_email, default_region=region)
         
-        # Filter out already staged contacts
-        unstaged = [c for c in contacts if not db_service.is_contact_staged(c['resource_name'], user_email)]
+        # PERF: Single query to get all staged resource names (O(1) lookup instead of N queries)
+        staged_names = db_service.get_all_staged_resource_names(user_email)
+        unstaged = [c for c in contacts if c['resource_name'] not in staged_names]
         
         return {
             "count": len(unstaged),

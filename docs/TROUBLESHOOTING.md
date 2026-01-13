@@ -1,3 +1,5 @@
+![Troubleshooting Guide Header](image.png)
+
 # Troubleshooting Guide
 
 ## 🔒 Security & Authentication Issues
@@ -376,5 +378,5 @@ source .env  # Test loading
 
 ---
 
-**Last Updated**: 2026-01-07  
-**Version**: 1.0.0 (Security Hardening Release)
+**Last Updated**: 2026-01-08  
+**Version**: 1.2.4

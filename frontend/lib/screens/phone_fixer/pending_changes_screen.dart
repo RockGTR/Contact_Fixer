@@ -5,6 +5,7 @@ import 'utils/phone_fixer_utils.dart';
 import 'widgets/summary_card.dart';
 import 'widgets/change_card.dart';
 import 'dialogs/edit_pending_dialog.dart';
+import '../../widgets/neumorphic_button.dart';
 
 class PendingChangesScreen extends StatefulWidget {
   final String regionCode;
@@ -248,34 +249,49 @@ class _PendingChangesScreenState extends State<PendingChangesScreen>
     final changes = _filteredChanges;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F7FA),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: const Color(0xFF667eea),
-        foregroundColor: Colors.white,
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+        foregroundColor: Theme.of(context).colorScheme.primary,
+        elevation: 0,
         title: _isSearching
             ? TextField(
                 controller: _searchController,
                 autofocus: true,
-                style: const TextStyle(color: Colors.white),
-                cursorColor: Colors.white,
-                decoration: const InputDecoration(
+                style: TextStyle(color: Theme.of(context).colorScheme.primary),
+                cursorColor: Theme.of(context).colorScheme.primary,
+                decoration: InputDecoration(
                   hintText: 'Search changes...',
-                  hintStyle: TextStyle(color: Colors.white70),
+                  hintStyle: TextStyle(
+                    color: Theme.of(context).colorScheme.secondary,
+                  ),
                   border: InputBorder.none,
                 ),
                 onChanged: (value) => setState(() => _searchQuery = value),
               )
-            : const Text('Pending Changes'),
+            : Text(
+                'Pending Changes',
+                style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 24,
+                ),
+              ),
         actions: [
           if (_data != null && (_data!['changes'] as List).isNotEmpty)
             IconButton(
-              icon: const Icon(Icons.delete_forever),
+              icon: Icon(
+                Icons.delete_forever_rounded,
+                color: Theme.of(context).colorScheme.error,
+              ),
               tooltip: 'Delete All',
               onPressed: _clearAll,
             ),
           _buildSortMenu(),
           IconButton(
-            icon: Icon(_isSearching ? Icons.close : Icons.search),
+            icon: Icon(
+              _isSearching ? Icons.close_rounded : Icons.search_rounded,
+            ),
+            color: Theme.of(context).colorScheme.primary,
             onPressed: () {
               setState(() {
                 if (_isSearching) {
@@ -291,9 +307,20 @@ class _PendingChangesScreenState extends State<PendingChangesScreen>
         ],
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? Center(
+              child: CircularProgressIndicator(
+                color: Theme.of(context).colorScheme.secondary,
+              ),
+            )
           : changes.isEmpty && _searchQuery.isNotEmpty
-          ? const Center(child: Text('No matches found'))
+          ? Center(
+              child: Text(
+                'No matches found',
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.secondary,
+                ),
+              ),
+            )
           : Column(
               children: [
                 if (!_isSearching)
@@ -328,33 +355,40 @@ class _PendingChangesScreenState extends State<PendingChangesScreen>
       bottomNavigationBar: _data != null && (summary['total'] ?? 0) > 0
           ? SafeArea(
               child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: ElevatedButton(
-                  onPressed: _isPushing ? null : _pushToGoogle,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF10b981),
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
+                padding: const EdgeInsets.all(24),
+                child: NeumorphicButton(
+                  onTap: _isPushing ? () {} : _pushToGoogle,
+                  color: const Color(0xFF10b981), // Accent color for action
+                  height: 56,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 24,
+                    vertical: 16,
                   ),
                   child: _isPushing
                       ? const SizedBox(
-                          height: 20,
-                          width: 20,
+                          height: 24,
+                          width: 24,
                           child: CircularProgressIndicator(
                             color: Colors.white,
-                            strokeWidth: 2,
+                            strokeWidth: 2.5,
                           ),
                         )
                       : Row(
+                          mainAxisSize: MainAxisSize.min,
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            const Icon(Icons.cloud_upload),
-                            const SizedBox(width: 8),
+                            const Icon(
+                              Icons.cloud_upload_rounded,
+                              color: Colors.white,
+                            ),
+                            const SizedBox(width: 12),
                             Text(
                               'Sync ${summary['accepts'] + summary['edits']} Changes',
+                              style: const TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                              ),
                             ),
                           ],
                         ),
